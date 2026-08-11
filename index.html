@@ -340,6 +340,7 @@
         }
         #attendanceMonthlyTotals { margin-bottom: 4px; }
         #attendanceTotalsLegend { margin-bottom: 14px; padding-bottom: 14px; border-bottom: 1px solid #f0f0f0; }
+        #attendanceTotalsLegend div + div { margin-top: 3px; }
         .attendance-table td.date-sunday { color: #e74c3c; }
         .attendance-table td.date-saturday { color: #3498db; }
         .attendance-sync {
@@ -1518,7 +1519,10 @@
                 <div class="attendance-section">
                     <div class="attendance-section-title">월간 근무시간 합계</div>
                     <div id="attendanceMonthlyTotals"></div>
-                    <div class="attendance-legend" id="attendanceTotalsLegend">기록상 합계 = 그룹웨어 인정근무 기준(연차 등 포함) · 9시 기준 합계 = 실제 출퇴근 시각에서 오전 9시 이전 근무 제외, 점심 1시간 제외</div>
+                    <div class="attendance-legend" id="attendanceTotalsLegend">
+                        <div>인정 근무 = 그룹웨어 인정근무 기준(연차 등 포함, 점심 1시간 제외)</div>
+                        <div>9시 기준 = 출근 9시 이후로 계산(조기출근 미반영, 점심 1시간 제외)</div>
+                    </div>
                     <div class="attendance-chart-controls">
                         <span>그래프 기간</span>
                         <input type="month" id="attendanceChartStart" onchange="loadAttendanceChartRange()">
@@ -1559,7 +1563,7 @@
         <div class="calendar-body">
             <div class="days" id="calendarDays"></div>
         </div>
-        <div class="footer">품질관리팀 Calendar · <a href="javascript:void(0)" onclick="openVersionModal()" title="버전 정보 보기">v<span id="appVersionLabel">1.15.10</span></a></div>
+        <div class="footer">품질관리팀 Calendar · <a href="javascript:void(0)" onclick="openVersionModal()" title="버전 정보 보기">v<span id="appVersionLabel">1.15.11</span></a></div>
     </div>
 
     <!-- 월간 연차 현황 플로팅 -->
@@ -1674,6 +1678,15 @@
 
         // 버전 이력 (최신이 위) — 버전 올릴 때 이 배열 맨 앞에 항목 추가 + 푸터 #appVersionLabel 텍스트 변경
         const VERSION_HISTORY = [
+            {
+                version: '1.15.11',
+                date: '2026-08-11',
+                title: '근태관리 — "기록상 합계"를 "인정 근무"로 표기 변경, 안내 문구 줄바꿈',
+                changed: [
+                    '표/그래프의 "기록상 합계" 표기를 "인정 근무"로 변경(계산 방식은 그룹웨어 인정근무 기준으로 이전과 동일)',
+                    '안내 문구를 한 줄로 붙여 쓰던 것을 "인정 근무" 설명과 "9시 기준" 설명 2줄로 분리 표시',
+                ],
+            },
             {
                 version: '1.15.10',
                 date: '2026-08-11',
@@ -3575,13 +3588,13 @@
                 </tr>`;
             }).join('');
             el.innerHTML = `<table class="attendance-table">
-                <thead><tr><th>이름</th><th>기록상 합계</th><th>9시 기준 합계</th></tr></thead>
+                <thead><tr><th>이름</th><th>인정 근무</th><th>9시 기준 합계</th></tr></thead>
                 <tbody>${rows}</tbody>
             </table>`;
             renderAttendanceMonthlyChart(totals);
         }
 
-        // 팀원별 월간 근무시간 묶은막대 그래프 — 기록상(파랑) vs 9시 기준(주황)
+        // 팀원별 월간 근무시간 묶은막대 그래프 — 인정 근무(파랑) vs 9시 기준(주황)
         function renderAttendanceMonthlyChart(totals) {
             const el = document.getElementById('attendanceMonthlyChart');
             if (!el) return;
@@ -3630,7 +3643,7 @@
                 const nineY = axisLineY - nineH;
                 const nameEsc = escHtml(name);
 
-                barsHtml += `<rect class="bar" x="${pairX.toFixed(1)}" y="${recY.toFixed(1)}" width="${barW.toFixed(1)}" height="${recH.toFixed(1)}" rx="4" ry="4" fill="${COLOR_RECORDED}"><title>${nameEsc} · 기록상 합계: ${minutesToHourText(t.recorded)}</title></rect>`;
+                barsHtml += `<rect class="bar" x="${pairX.toFixed(1)}" y="${recY.toFixed(1)}" width="${barW.toFixed(1)}" height="${recH.toFixed(1)}" rx="4" ry="4" fill="${COLOR_RECORDED}"><title>${nameEsc} · 인정 근무: ${minutesToHourText(t.recorded)}</title></rect>`;
                 barsHtml += `<rect class="bar" x="${(pairX + barW + barGap).toFixed(1)}" y="${nineY.toFixed(1)}" width="${barW.toFixed(1)}" height="${nineH.toFixed(1)}" rx="4" ry="4" fill="${COLOR_NINEAM}"><title>${nameEsc} · 9시 기준 합계: ${minutesToHourText(t.nineAm)}</title></rect>`;
                 barsHtml += `<text class="bar-label" x="${(pairX + barW / 2).toFixed(1)}" y="${(recY - 4).toFixed(1)}" text-anchor="middle">${fmtShort(t.recorded)}</text>`;
                 barsHtml += `<text class="bar-label" x="${(pairX + barW + barGap + barW / 2).toFixed(1)}" y="${(nineY - 4).toFixed(1)}" text-anchor="middle">${fmtShort(t.nineAm)}</text>`;
@@ -3639,7 +3652,7 @@
 
             el.innerHTML = `
                 <div class="attendance-chart-legend">
-                    <span><i style="background:${COLOR_RECORDED}"></i>기록상 합계</span>
+                    <span><i style="background:${COLOR_RECORDED}"></i>인정 근무</span>
                     <span><i style="background:${COLOR_NINEAM}"></i>9시 기준 합계</span>
                 </div>
                 <svg class="attendance-chart-svg" viewBox="0 0 ${W} ${H}" role="img" aria-label="팀원별 월간 근무시간(시간 단위)">
