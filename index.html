@@ -1523,7 +1523,7 @@
         <div class="calendar-body">
             <div class="days" id="calendarDays"></div>
         </div>
-        <div class="footer">품질관리팀 Calendar · <a href="javascript:void(0)" onclick="openVersionModal()" title="버전 정보 보기">v<span id="appVersionLabel">1.15.4</span></a></div>
+        <div class="footer">품질관리팀 Calendar · <a href="javascript:void(0)" onclick="openVersionModal()" title="버전 정보 보기">v<span id="appVersionLabel">1.15.5</span></a></div>
     </div>
 
     <!-- 월간 연차 현황 플로팅 -->
@@ -1638,6 +1638,14 @@
 
         // 버전 이력 (최신이 위) — 버전 올릴 때 이 배열 맨 앞에 항목 추가 + 푸터 #appVersionLabel 텍스트 변경
         const VERSION_HISTORY = [
+            {
+                version: '1.15.5',
+                date: '2026-08-11',
+                title: '근태관리 — 일자별 근무시간 줄바꿈 정리',
+                fixed: [
+                    '일자별 표 칸에서 "기록상 / 9시 기준" 근무시간이 한 줄에 붙어 있어 좁은 칸에서 어색하게 줄바꿈되던 문제 — 각각 별도 줄로 표시',
+                ],
+            },
             {
                 version: '1.15.4',
                 date: '2026-08-11',
@@ -3443,7 +3451,7 @@
                         const recordedMin = Math.max(0, outMin - inMin - LUNCH_MIN);
                         const nineAmStart = Math.max(inMin, NINE_AM_MIN);
                         const nineAmMin = Math.max(0, outMin - nineAmStart - LUNCH_MIN);
-                        totalsHtml = `<div class="wt-totals">${minutesToHourText(recordedMin)} / 9시 ${minutesToHourText(nineAmMin)}</div>`;
+                        totalsHtml = `<div class="wt-totals">${minutesToHourText(recordedMin)}</div><div class="wt-totals">9시 ${minutesToHourText(nineAmMin)}</div>`;
                     }
                     return `<td class="${lateCls}"><div class="wt-time">${inTime} / ${outTime}</div>${totalsHtml}</td>`;
                 }).join('');
