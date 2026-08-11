@@ -305,6 +305,18 @@
         .attendance-table td.late .wt-time { color: #d63031; font-weight: 700; }
         .attendance-table .wt-totals { font-size: 0.85em; color: #999; margin-top: 2px; }
         .attendance-table .wt-highlight { background: #dbeeff; color: #1e3c72; padding: 1px 5px; border-radius: 4px; font-weight: 700; }
+        .attendance-chart-controls {
+            display: flex; align-items: center; gap: 6px; flex-wrap: wrap;
+            font-size: 0.78em; color: #52514e; margin-top: 4px;
+        }
+        .attendance-chart-controls input[type="month"] {
+            border: 1px solid #ddd; border-radius: 6px; padding: 4px 6px; font-family: inherit; font-size: 1em;
+        }
+        .attendance-range-btn {
+            border: 1px solid #ddd; border-radius: 6px; padding: 4px 10px; background: #fff;
+            font-family: inherit; font-size: 1em; cursor: pointer; color: #1e3c72; font-weight: 600;
+        }
+        .attendance-range-btn:hover { background: #f0f4fb; }
         .attendance-chart-wrap { margin-top: 14px; }
         .attendance-chart-legend {
             display: flex; gap: 16px; justify-content: center; margin-bottom: 8px;
@@ -1507,6 +1519,13 @@
                     <div class="attendance-section-title">월간 근무시간 합계</div>
                     <div id="attendanceMonthlyTotals"></div>
                     <div class="attendance-legend" id="attendanceTotalsLegend">기록상 합계 = 실제 출퇴근 시각 기준 · 9시 기준 합계 = 오전 9시 이전 근무는 제외 · 둘 다 하루 점심 1시간 제외</div>
+                    <div class="attendance-chart-controls">
+                        <span>그래프 기간</span>
+                        <input type="month" id="attendanceChartStart" onchange="loadAttendanceChartRange()">
+                        <span>~</span>
+                        <input type="month" id="attendanceChartEnd" onchange="loadAttendanceChartRange()">
+                        <button type="button" class="attendance-range-btn" onclick="setAttendanceChartRangeToYear()">올해 전체</button>
+                    </div>
                     <div id="attendanceMonthlyChart" class="attendance-chart-wrap"></div>
                 </div>
                 <div class="attendance-sync" id="attendanceSyncStatus"></div>
@@ -1540,7 +1559,7 @@
         <div class="calendar-body">
             <div class="days" id="calendarDays"></div>
         </div>
-        <div class="footer">품질관리팀 Calendar · <a href="javascript:void(0)" onclick="openVersionModal()" title="버전 정보 보기">v<span id="appVersionLabel">1.15.7</span></a></div>
+        <div class="footer">품질관리팀 Calendar · <a href="javascript:void(0)" onclick="openVersionModal()" title="버전 정보 보기">v<span id="appVersionLabel">1.15.8</span></a></div>
     </div>
 
     <!-- 월간 연차 현황 플로팅 -->
@@ -1655,6 +1674,14 @@
 
         // 버전 이력 (최신이 위) — 버전 올릴 때 이 배열 맨 앞에 항목 추가 + 푸터 #appVersionLabel 텍스트 변경
         const VERSION_HISTORY = [
+            {
+                version: '1.15.8',
+                date: '2026-08-11',
+                title: '근태관리 — 그래프 기간을 연도/월 구간으로 확장',
+                added: [
+                    '월간 근무시간 그래프에 "그래프 기간" 시작~종료 달 선택 추가, "올해 전체" 버튼으로 1~12월 한 번에 조회 — 선택한 기간 전체를 합산해 팀원별로 비교. 표/일자별 목록은 기존처럼 단일 달 그대로 유지',
+                ],
+            },
             {
                 version: '1.15.7',
                 date: '2026-08-11',
@@ -3336,6 +3363,10 @@
             // 열 때마다 캘린더가 보고 있는 달(currentYear/currentMonth)로 맞춤 — 달력에서 이전/다음 달로 옮긴 뒤 열면 그 달이 보이게
             const key = (currentYear && currentMonth) ? `${currentYear}-${String(currentMonth).padStart(2, '0')}` : attendanceMonthKey();
             if (input) input.value = key;
+            const startEl = document.getElementById('attendanceChartStart');
+            const endEl = document.getElementById('attendanceChartEnd');
+            if (startEl) startEl.value = key;
+            if (endEl) endEl.value = key;
             renderAttendanceLeaveTable();
             loadAttendanceMonth(key);
             setupAttendanceMetaListener();
@@ -3359,6 +3390,11 @@
                 db.ref('/attendance/' + attendanceListenerMonth).off();
             }
             attendanceListenerMonth = monthKey;
+            // 단일 달 선택이 바뀌면 그래프 기간도 같은 달로 되돌려 표/그래프가 어긋나지 않게 함
+            const startEl = document.getElementById('attendanceChartStart');
+            const endEl = document.getElementById('attendanceChartEnd');
+            if (startEl) startEl.value = monthKey;
+            if (endEl) endEl.value = monthKey;
             db.ref('/attendance/' + monthKey).on('value', function(snap) {
                 attendanceData = snap.val() || {};
                 renderAttendanceWorktimes();
@@ -3367,6 +3403,59 @@
                 attendanceData = {};
                 renderAttendanceWorktimes();
             });
+        }
+
+        // startKey~endKey(둘 다 "YYYY-MM") 사이의 모든 달 키를 순서대로 반환 — 최대 36개월로 방어
+        function monthRangeKeys(startKey, endKey) {
+            let [sy, sm] = startKey.split('-').map(Number);
+            const [ey, em] = endKey.split('-').map(Number);
+            const keys = [];
+            let y = sy, m = sm;
+            while ((y < ey || (y === ey && m <= em)) && keys.length < 36) {
+                keys.push(`${y}-${String(m).padStart(2, '0')}`);
+                m++;
+                if (m > 12) { m = 1; y++; }
+            }
+            return keys;
+        }
+
+        // 여러 달의 /attendance/{yyyy-MM} 스냅샷을 하나로 합침 (날짜 키는 달마다 겹치지 않으므로 단순 병합)
+        function mergeMonthlyAttendance(monthDataList) {
+            const merged = {};
+            monthDataList.forEach(monthData => {
+                for (const ymdKey in (monthData || {})) merged[ymdKey] = monthData[ymdKey];
+            });
+            return merged;
+        }
+
+        // 그래프 전용 — 시작~종료 달 범위를 한 번씩 조회해 합산 후 그래프만 갱신 (표/일자별 목록은 단일 달 그대로 유지)
+        async function loadAttendanceChartRange() {
+            if (!db || !isAdminUser()) return;
+            const startEl = document.getElementById('attendanceChartStart');
+            const endEl = document.getElementById('attendanceChartEnd');
+            let startKey = startEl && startEl.value;
+            let endKey = endEl && endEl.value;
+            if (!startKey || !endKey) return;
+            if (startKey > endKey) {
+                [startKey, endKey] = [endKey, startKey];
+                startEl.value = startKey;
+                endEl.value = endKey;
+            }
+            const keys = monthRangeKeys(startKey, endKey);
+            const snaps = await Promise.all(keys.map(k =>
+                db.ref('/attendance/' + k).once('value').then(s => s.val()).catch(() => null)
+            ));
+            const merged = mergeMonthlyAttendance(snaps);
+            renderAttendanceMonthlyChart(computeMonthlyTotals(merged));
+        }
+
+        function setAttendanceChartRangeToYear() {
+            const y = currentYear || new Date().getFullYear();
+            const startEl = document.getElementById('attendanceChartStart');
+            const endEl = document.getElementById('attendanceChartEnd');
+            if (startEl) startEl.value = `${y}-01`;
+            if (endEl) endEl.value = `${y}-12`;
+            loadAttendanceChartRange();
         }
 
         function setupAttendanceMetaListener() {
