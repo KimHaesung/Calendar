@@ -1559,7 +1559,7 @@
         <div class="calendar-body">
             <div class="days" id="calendarDays"></div>
         </div>
-        <div class="footer">품질관리팀 Calendar · <a href="javascript:void(0)" onclick="openVersionModal()" title="버전 정보 보기">v<span id="appVersionLabel">1.15.8</span></a></div>
+        <div class="footer">품질관리팀 Calendar · <a href="javascript:void(0)" onclick="openVersionModal()" title="버전 정보 보기">v<span id="appVersionLabel">1.15.9</span></a></div>
     </div>
 
     <!-- 월간 연차 현황 플로팅 -->
@@ -1674,6 +1674,14 @@
 
         // 버전 이력 (최신이 위) — 버전 올릴 때 이 배열 맨 앞에 항목 추가 + 푸터 #appVersionLabel 텍스트 변경
         const VERSION_HISTORY = [
+            {
+                version: '1.15.9',
+                date: '2026-08-11',
+                title: '근태관리 — 출퇴근 현황에 토/일 포함 전체 날짜 표시',
+                fixed: [
+                    '출퇴근 현황(일자별) 표가 기록 있는 날짜만 보여줘서 토/일이 빠지고 들쭉날쭉했던 문제 — 이제 그 달 1일부터 말일까지 전체 날짜를 순서대로 표시(기록 없는 날은 "-")',
+                ],
+            },
             {
                 version: '1.15.8',
                 date: '2026-08-11',
@@ -3620,15 +3628,25 @@
                 </svg>`;
         }
 
+        // "2026-08" → ["2026-08-01", ..., "2026-08-31"] — 토/일 포함 그 달 전체 날짜
+        function daysInMonthKey(monthKey) {
+            const [y, m] = monthKey.split('-').map(Number);
+            const lastDay = new Date(y, m, 0).getDate();
+            const dates = [];
+            for (let d = 1; d <= lastDay; d++) dates.push(`${monthKey}-${String(d).padStart(2, '0')}`);
+            return dates;
+        }
+
         function renderAttendanceWorktimes() {
             renderAttendanceMonthlyTotals(attendanceData);
             const el = document.getElementById('attendanceWorktimesTable');
             if (!el) return;
-            const dates = Object.keys(attendanceData).sort();
-            if (!dates.length) {
+            if (!Object.keys(attendanceData).length) {
                 el.innerHTML = '<div class="attendance-empty">동기화된 출퇴근 데이터가 없습니다</div>';
                 return;
             }
+            // 기록 있는 날짜만이 아니라 토/일 포함 그 달 전체 날짜를 순서대로 표시(빈 날은 "-")
+            const dates = daysInMonthKey(attendanceListenerMonth);
             const DOW = ['일', '월', '화', '수', '목', '금', '토'];
             const head = '<tr><th>날짜</th>' + TEAM_MEMBERS.map(n => `<th>${escHtml(n)}</th>`).join('') + '</tr>';
             const rows = dates.map(ymd => {
