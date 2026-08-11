@@ -304,6 +304,7 @@
         .attendance-table td:first-child, .attendance-table th:first-child { text-align: left; }
         .attendance-table td.late .wt-time { color: #d63031; font-weight: 700; }
         .attendance-table .wt-totals { font-size: 0.85em; color: #999; margin-top: 2px; }
+        .attendance-table .wt-highlight { background: #dbeeff; color: #1e3c72; padding: 1px 5px; border-radius: 4px; font-weight: 700; }
         .attendance-empty, .attendance-empty-cell {
             text-align: center; color: #aaa; padding: 16px 0; font-size: 0.88em;
         }
@@ -1481,16 +1482,16 @@
                 </div>
                 <div class="attendance-section">
                     <div class="attendance-section-title-row">
-                        <div class="attendance-section-title">월간 근무시간 합계</div>
+                        <div class="attendance-section-title">출퇴근 현황 (일자별)</div>
                         <input type="month" id="attendanceMonthInput" onchange="loadAttendanceMonth(this.value)">
                     </div>
-                    <div id="attendanceMonthlyTotals"></div>
-                    <div class="attendance-legend" id="attendanceTotalsLegend">기록상 합계 = 실제 출퇴근 시각 기준 · 9시 기준 합계 = 오전 9시 이전 근무는 제외 · 둘 다 하루 점심 1시간 제외</div>
+                    <div id="attendanceWorktimesTable"></div>
+                    <div class="attendance-legend">🔴 빨간색 = 그룹웨어 기준 지각 처리된 출근 · 🔵 옅은 파란색 = 그날 가장 일찍 출근 / 가장 늦게 퇴근</div>
                 </div>
                 <div class="attendance-section">
-                    <div class="attendance-section-title">출퇴근 현황 (일자별)</div>
-                    <div id="attendanceWorktimesTable"></div>
-                    <div class="attendance-legend">🔴 빨간색 = 그룹웨어 기준 지각 처리된 출근</div>
+                    <div class="attendance-section-title">월간 근무시간 합계</div>
+                    <div id="attendanceMonthlyTotals"></div>
+                    <div class="attendance-legend" id="attendanceTotalsLegend">기록상 합계 = 실제 출퇴근 시각 기준 · 9시 기준 합계 = 오전 9시 이전 근무는 제외 · 둘 다 하루 점심 1시간 제외</div>
                 </div>
                 <div class="attendance-sync" id="attendanceSyncStatus"></div>
             </div>
@@ -1523,7 +1524,7 @@
         <div class="calendar-body">
             <div class="days" id="calendarDays"></div>
         </div>
-        <div class="footer">품질관리팀 Calendar · <a href="javascript:void(0)" onclick="openVersionModal()" title="버전 정보 보기">v<span id="appVersionLabel">1.15.5</span></a></div>
+        <div class="footer">품질관리팀 Calendar · <a href="javascript:void(0)" onclick="openVersionModal()" title="버전 정보 보기">v<span id="appVersionLabel">1.15.6</span></a></div>
     </div>
 
     <!-- 월간 연차 현황 플로팅 -->
@@ -1638,6 +1639,17 @@
 
         // 버전 이력 (최신이 위) — 버전 올릴 때 이 배열 맨 앞에 항목 추가 + 푸터 #appVersionLabel 텍스트 변경
         const VERSION_HISTORY = [
+            {
+                version: '1.15.6',
+                date: '2026-08-11',
+                title: '근태관리 — 최초 출근/최종 퇴근 강조, 섹션 순서 변경',
+                added: [
+                    '일자별 표에서 그날 가장 일찍 출근한 시각과 가장 늦게 퇴근한 시각을 옅은 파란색으로 강조',
+                ],
+                changed: [
+                    '섹션 순서를 연차 현황 → 출퇴근 현황(일자별) → 월간 근무시간 합계 순으로 변경',
+                ],
+            },
             {
                 version: '1.15.5',
                 date: '2026-08-11',
@@ -3439,6 +3451,18 @@
                 const dayData = attendanceData[ymd] || {};
                 const dow = new Date(ymd + 'T00:00:00').getDay();
                 const dateCls = dow === 0 ? 'date-sunday' : dow === 6 ? 'date-saturday' : '';
+
+                // 그날 가장 이른 출근 / 가장 늦은 퇴근 — 옅은 파란색 강조용
+                let earliestIn = null, latestOut = null;
+                TEAM_MEMBERS.forEach(name => {
+                    const rec = dayData[name];
+                    if (!rec) return;
+                    const inM = hmToMinutes(rec.clockIn);
+                    const outM = hmToMinutes(rec.clockOut);
+                    if (inM != null && (earliestIn == null || inM < earliestIn)) earliestIn = inM;
+                    if (outM != null && (latestOut == null || outM > latestOut)) latestOut = outM;
+                });
+
                 const cells = TEAM_MEMBERS.map(name => {
                     const rec = dayData[name];
                     const inTime = (rec && rec.clockIn) || '-';
@@ -3446,6 +3470,8 @@
                     const lateCls = rec && rec.late ? 'late' : '';
                     const inMin = rec ? hmToMinutes(rec.clockIn) : null;
                     const outMin = rec ? hmToMinutes(rec.clockOut) : null;
+                    const inHl = inMin != null && inMin === earliestIn ? 'wt-highlight' : '';
+                    const outHl = outMin != null && outMin === latestOut ? 'wt-highlight' : '';
                     let totalsHtml = '';
                     if (inMin != null && outMin != null && outMin > inMin) {
                         const recordedMin = Math.max(0, outMin - inMin - LUNCH_MIN);
@@ -3453,7 +3479,7 @@
                         const nineAmMin = Math.max(0, outMin - nineAmStart - LUNCH_MIN);
                         totalsHtml = `<div class="wt-totals">${minutesToHourText(recordedMin)}</div><div class="wt-totals">9시 ${minutesToHourText(nineAmMin)}</div>`;
                     }
-                    return `<td class="${lateCls}"><div class="wt-time">${inTime} / ${outTime}</div>${totalsHtml}</td>`;
+                    return `<td class="${lateCls}"><div class="wt-time"><span class="${inHl}">${inTime}</span> / <span class="${outHl}">${outTime}</span></div>${totalsHtml}</td>`;
                 }).join('');
                 return `<tr><td class="${dateCls}">${ymd.slice(5)} (${DOW[dow]})</td>${cells}</tr>`;
             }).join('');
