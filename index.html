@@ -254,6 +254,69 @@
         .version-footer a { color: #1e3c72; text-decoration: none; }
         .version-footer a:hover { text-decoration: underline; }
 
+        .attendance-overlay {
+            display: none; position: fixed; top: 0; left: 0;
+            width: 100%; height: 100%;
+            background: rgba(0,0,0,0.45);
+            z-index: 1600;
+            justify-content: center; align-items: center;
+        }
+        .attendance-overlay.active { display: flex; }
+        .attendance-box {
+            background: #fff; border-radius: 16px; width: 94%;
+            max-width: 820px; box-shadow: 0 20px 60px rgba(0,0,0,0.25);
+            overflow: hidden; animation: modalIn 0.2s ease;
+            display: flex; flex-direction: column; max-height: 86vh;
+        }
+        .attendance-header {
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            color: #fff; padding: 16px 22px;
+            display: flex; justify-content: space-between; align-items: center;
+        }
+        .attendance-header h2 { font-size: 1.1em; font-weight: 700; }
+        .attendance-close {
+            background: none; border: none; color: #fff;
+            font-size: 1.5em; cursor: pointer; opacity: 0.85; line-height: 1;
+        }
+        .attendance-close:hover { opacity: 1; }
+        .attendance-body { padding: 18px 22px; overflow-y: auto; }
+        .attendance-section { margin-bottom: 22px; }
+        .attendance-section:last-child { margin-bottom: 0; }
+        .attendance-section-title-row {
+            display: flex; justify-content: space-between; align-items: center;
+            margin-bottom: 10px; flex-wrap: wrap; gap: 8px;
+        }
+        .attendance-section-title {
+            font-weight: 700; font-size: 0.95em; color: #1e3c72; margin-bottom: 10px;
+        }
+        .attendance-section-title-row .attendance-section-title { margin-bottom: 0; }
+        #attendanceMonthInput {
+            border: 1px solid #ddd; border-radius: 6px; padding: 5px 8px;
+            font-family: inherit; font-size: 0.88em;
+        }
+        .attendance-table {
+            width: 100%; border-collapse: collapse; font-size: 0.85em;
+        }
+        .attendance-table th, .attendance-table td {
+            padding: 7px 10px; border-bottom: 1px solid #f0f0f0; text-align: center;
+        }
+        .attendance-table th { color: #666; font-weight: 700; background: #fafafa; }
+        .attendance-table td:first-child, .attendance-table th:first-child { text-align: left; }
+        .attendance-table td.late { color: #d63031; font-weight: 700; }
+        .attendance-empty, .attendance-empty-cell {
+            text-align: center; color: #aaa; padding: 16px 0; font-size: 0.88em;
+        }
+        .attendance-sync {
+            margin-top: 4px; text-align: center; font-size: 0.75em; color: #999; font-weight: 600;
+        }
+        .attendance-sync.fresh { color: #27ae60; }
+        .attendance-sync.stale { color: #d63031; }
+        .attendance-sync.empty { color: #b08900; }
+        @media (max-width: 768px) {
+            .attendance-table { font-size: 0.78em; }
+            .attendance-table th, .attendance-table td { padding: 5px 6px; }
+        }
+
         .calendar-body { padding: 12px; }
 
         /* 요일 헤더 */
@@ -1397,6 +1460,28 @@
             </div>
         </div>
     </div>
+    <div class="attendance-overlay" id="attendanceOverlay" onclick="if(event.target===this)closeAttendancePanel()">
+        <div class="attendance-box">
+            <div class="attendance-header">
+                <h2>👥 근태관리</h2>
+                <button class="attendance-close" onclick="closeAttendancePanel()" aria-label="닫기">&times;</button>
+            </div>
+            <div class="attendance-body">
+                <div class="attendance-section">
+                    <div class="attendance-section-title">연차 현황 (그룹웨어 동기화)</div>
+                    <div id="attendanceLeaveTable"></div>
+                </div>
+                <div class="attendance-section">
+                    <div class="attendance-section-title-row">
+                        <div class="attendance-section-title">출퇴근 현황</div>
+                        <input type="month" id="attendanceMonthInput" onchange="renderAttendanceWorktimes()">
+                    </div>
+                    <div id="attendanceWorktimesTable"></div>
+                </div>
+                <div class="attendance-sync" id="attendanceSyncStatus"></div>
+            </div>
+        </div>
+    </div>
     <div class="drag-hint" id="dragHint"></div>
     <div class="copy-toast" id="copyToast">클립보드에 복사됨</div>
     <div class="calendar">
@@ -1415,6 +1500,7 @@
                 <button class="auth-only admin-only btn-copy" onclick="copyAsImage(event)" title="이미지(PNG)로 클립보드 복사 — 색상/레이아웃 완벽, 단 텍스트 검색 불가">이미지로 복사</button>
                 <button class="auth-only admin-only btn-export" onclick="exportJSON()">내보내기</button>
                 <button class="auth-only admin-only btn-import" onclick="document.getElementById('importFile').click()">불러오기</button>
+                <button class="auth-only admin-only btn-attendance" onclick="openAttendancePanel()" title="팀 출퇴근·연차 조회 (그룹웨어 연동, 최고 관리자 전용)">👥 근태관리</button>
                 <button class="btn-print" onclick="window.print()">인쇄</button>
                 <input type="file" id="importFile" accept=".json" style="display:none" onchange="importJSON(event)">
                 <button id="authBtn" class="auth-btn" onclick="doLogin()">로그인</button>
@@ -1423,7 +1509,7 @@
         <div class="calendar-body">
             <div class="days" id="calendarDays"></div>
         </div>
-        <div class="footer">품질관리팀 Calendar · <a href="javascript:void(0)" onclick="openVersionModal()" title="버전 정보 보기">v<span id="appVersionLabel">1.14.12</span></a></div>
+        <div class="footer">품질관리팀 Calendar · <a href="javascript:void(0)" onclick="openVersionModal()" title="버전 정보 보기">v<span id="appVersionLabel">1.15.0</span></a></div>
     </div>
 
     <!-- 월간 연차 현황 플로팅 -->
@@ -1538,6 +1624,16 @@
 
         // 버전 이력 (최신이 위) — 버전 올릴 때 이 배열 맨 앞에 항목 추가 + 푸터 #appVersionLabel 텍스트 변경
         const VERSION_HISTORY = [
+            {
+                version: '1.15.0',
+                date: '2026-08-11',
+                title: '근태관리 (최고 관리자 전용)',
+                added: [
+                    '툴바에 "👥 근태관리" 버튼 추가 — admin 계정에만 노출',
+                    '연차 현황 표(부서·직급·총부여/사용/잔여) — 그룹웨어 동기화 데이터 재사용',
+                    '월별 팀 출퇴근 현황 표 — /attendance/{yyyy-MM} Firebase 데이터 표시 (그룹웨어 팀 전체 출퇴근 API 연동은 후속 작업)',
+                ],
+            },
             {
                 version: '1.14.12',
                 date: '2026-07-19',
@@ -3123,6 +3219,143 @@
             el.textContent = `🔄 연차 동기화: ${ago} (${stamp})`;
         }
 
+        // ===== 근태관리 (최고 관리자 전용) =====
+        // 연차: annual_leave 를 그대로 재사용(위 leavePanel과 동일 데이터, 표 형태로만 다르게 표시).
+        // 출퇴근: /attendance/{yyyy-MM} — 확장 프로그램이 그룹웨어 팀 전체 출퇴근 API 연동 후 채워줄 예정.
+        let attendanceData = {};
+        let attendanceMeta = null;
+        let attendanceListenerMonth = null;
+        let attendanceMetaBound = false;
+
+        function attendanceMonthKey(d) {
+            d = d || new Date();
+            return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0');
+        }
+
+        function openAttendancePanel() {
+            if (!isAdminUser()) return;
+            document.getElementById('attendanceOverlay').classList.add('active');
+            const input = document.getElementById('attendanceMonthInput');
+            if (input && !input.value) input.value = attendanceMonthKey();
+            renderAttendanceLeaveTable();
+            loadAttendanceMonth(input ? input.value : attendanceMonthKey());
+            setupAttendanceMetaListener();
+        }
+
+        function closeAttendancePanel() {
+            document.getElementById('attendanceOverlay').classList.remove('active');
+            if (db && attendanceListenerMonth) {
+                db.ref('/attendance/' + attendanceListenerMonth).off();
+                attendanceListenerMonth = null;
+            }
+            if (db && attendanceMetaBound) {
+                db.ref('/attendance/_meta').off();
+                attendanceMetaBound = false;
+            }
+        }
+
+        function loadAttendanceMonth(monthKey) {
+            if (!db || !isAdminUser()) return;
+            if (attendanceListenerMonth && attendanceListenerMonth !== monthKey) {
+                db.ref('/attendance/' + attendanceListenerMonth).off();
+            }
+            attendanceListenerMonth = monthKey;
+            db.ref('/attendance/' + monthKey).on('value', function(snap) {
+                attendanceData = snap.val() || {};
+                renderAttendanceWorktimes();
+            }, function(err) {
+                console.warn('출퇴근 데이터 조회 실패', err);
+                attendanceData = {};
+                renderAttendanceWorktimes();
+            });
+        }
+
+        function setupAttendanceMetaListener() {
+            if (!db || attendanceMetaBound || !isAdminUser()) return;
+            attendanceMetaBound = true;
+            db.ref('/attendance/_meta').on('value', function(snap) {
+                attendanceMeta = snap.val() || null;
+                renderAttendanceSyncStatus();
+            });
+        }
+
+        function renderAttendanceLeaveTable() {
+            const el = document.getElementById('attendanceLeaveTable');
+            if (!el) return;
+            const hasData = annualLeaveData && Object.keys(annualLeaveData).length > 0;
+            if (!hasData) {
+                el.innerHTML = '<div class="attendance-empty">동기화된 연차 데이터가 없습니다 — 확장 프로그램 팝업에서 동기화해주세요</div>';
+                return;
+            }
+            const fmt = n => { n = Number(n) || 0; return Number.isInteger(n) ? n : parseFloat(n.toFixed(2)); };
+            const rows = TEAM_MEMBERS.map(name => {
+                const info = annualLeaveData[name];
+                if (!info) {
+                    return `<tr><td>${escHtml(name)}</td><td colspan="5" class="attendance-empty-cell">데이터 없음</td></tr>`;
+                }
+                return `<tr>
+                    <td>${escHtml(name)}</td>
+                    <td>${escHtml(info.organizationName || '')}</td>
+                    <td>${escHtml(info.dutyName || '')}</td>
+                    <td>${fmt(info.yearNum)}</td>
+                    <td>${fmt(info.totalUsedNum)}</td>
+                    <td>${fmt(info.remainNum)}</td>
+                </tr>`;
+            }).join('');
+            el.innerHTML = `<table class="attendance-table">
+                <thead><tr><th>이름</th><th>부서</th><th>직급</th><th>총부여</th><th>사용</th><th>잔여</th></tr></thead>
+                <tbody>${rows}</tbody>
+            </table>`;
+        }
+
+        function renderAttendanceWorktimes() {
+            const el = document.getElementById('attendanceWorktimesTable');
+            if (!el) return;
+            const dates = Object.keys(attendanceData).sort();
+            if (!dates.length) {
+                el.innerHTML = '<div class="attendance-empty">동기화된 출퇴근 데이터가 없습니다</div>';
+                return;
+            }
+            const head = '<tr><th>날짜</th>' + TEAM_MEMBERS.map(n => `<th>${escHtml(n)}</th>`).join('') + '</tr>';
+            const rows = dates.map(ymd => {
+                const dayData = attendanceData[ymd] || {};
+                const cells = TEAM_MEMBERS.map(name => {
+                    const rec = dayData[name];
+                    const inTime = (rec && rec.clockIn) || '-';
+                    const outTime = (rec && rec.clockOut) || '-';
+                    const lateCls = rec && rec.clockIn && rec.clockIn > '09:00' ? 'late' : '';
+                    return `<td class="${lateCls}">${inTime} / ${outTime}</td>`;
+                }).join('');
+                return `<tr><td>${ymd.slice(5)}</td>${cells}</tr>`;
+            }).join('');
+            el.innerHTML = `<table class="attendance-table"><thead>${head}</thead><tbody>${rows}</tbody></table>`;
+        }
+
+        function renderAttendanceSyncStatus() {
+            const el = document.getElementById('attendanceSyncStatus');
+            if (!el) return;
+            if (!attendanceMeta || !attendanceMeta.lastSyncAt) {
+                el.className = 'attendance-sync empty';
+                el.textContent = '출퇴근 데이터 미동기화 — 확장 프로그램 연동 준비 중';
+                return;
+            }
+            const ts = Number(attendanceMeta.lastSyncAt);
+            const ageMs = Date.now() - ts;
+            const ageDays = Math.floor(ageMs / 86400000);
+            const ageHours = Math.floor(ageMs / 3600000);
+            const ageMin = Math.floor(ageMs / 60000);
+            let ago;
+            if (ageMs < 60000) ago = '방금 전';
+            else if (ageMin < 60) ago = ageMin + '분 전';
+            else if (ageHours < 24) ago = ageHours + '시간 전';
+            else ago = ageDays + '일 전';
+            const d = new Date(ts);
+            const stamp = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
+            const cls = ageDays >= 7 ? 'stale' : 'fresh';
+            el.className = 'attendance-sync ' + cls;
+            el.textContent = `🔄 출퇴근 동기화: ${ago} (${stamp})`;
+        }
+
         function renderColorPicker() {
             const cp = document.getElementById('colorPicker');
             cp.innerHTML = getColorNames().map((name, i) =>
@@ -4322,6 +4555,8 @@
             if (e.key !== 'Escape') return;
             const memoOv = document.getElementById('memoOverlay');
             if (memoOv && memoOv.classList.contains('active')) { closeMemo(); return; }
+            const attOv = document.getElementById('attendanceOverlay');
+            if (attOv && attOv.classList.contains('active')) { closeAttendancePanel(); return; }
             closeModal();
         });
 
@@ -4334,7 +4569,7 @@
             const el = document.activeElement;
             if (el && (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || el.tagName === 'SELECT' || el.isContentEditable)) return;
             // 모달/메모/로그인/버전 오버레이가 열려 있으면 무시
-            const overlayOpen = ['modalOverlay', 'memoOverlay', 'loginOverlay', 'versionOverlay'].some(id => {
+            const overlayOpen = ['modalOverlay', 'memoOverlay', 'loginOverlay', 'versionOverlay', 'attendanceOverlay'].some(id => {
                 const o = document.getElementById(id);
                 return o && o.classList.contains('active');
             });
