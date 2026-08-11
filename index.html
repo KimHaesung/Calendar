@@ -1566,7 +1566,7 @@
         <div class="calendar-body">
             <div class="days" id="calendarDays"></div>
         </div>
-        <div class="footer">품질관리팀 Calendar · <a href="javascript:void(0)" onclick="openVersionModal()" title="버전 정보 보기">v<span id="appVersionLabel">1.15.18</span></a></div>
+        <div class="footer">품질관리팀 Calendar · <a href="javascript:void(0)" onclick="openVersionModal()" title="버전 정보 보기">v<span id="appVersionLabel">1.15.19</span></a></div>
     </div>
 
     <!-- 월간 연차 현황 플로팅 -->
@@ -1681,6 +1681,14 @@
 
         // 버전 이력 (최신이 위) — 버전 올릴 때 이 배열 맨 앞에 항목 추가 + 푸터 #appVersionLabel 텍스트 변경
         const VERSION_HISTORY = [
+            {
+                version: '1.15.19',
+                date: '2026-08-11',
+                title: '근태관리 — 재직기간/경력 표기 통일',
+                changed: [
+                    '연차 현황의 "총 재직기간"·"총 경력"을 그룹웨어 원문 표기(선행 0 붙거나 공백 없는 등 제각각)에서 "3년 11개월" 형식(선행 0 제거, 공백 추가)으로 통일',
+                ],
+            },
             {
                 version: '1.15.18',
                 date: '2026-08-11',
@@ -3585,10 +3593,15 @@
                 return;
             }
             const fmt = n => { n = Number(n) || 0; return Number.isInteger(n) ? n : parseFloat(n.toFixed(2)); };
+            // "03년11개월" / "6년3개월" 등 그룹웨어 표기를 "3년 11개월" 형식으로 통일(선행 0 제거, 공백 추가)
+            const fmtPeriod = str => {
+                const m = String(str || '').match(/^(\d+)년\s*(\d+)개월$/);
+                return m ? `${Number(m[1])}년 ${Number(m[2])}개월` : (str || '-');
+            };
             const rows = TEAM_MEMBERS.map(name => {
                 const info = annualLeaveData[name];
                 const emp = employeeInfoData[name];
-                const empCells = `<td>${escHtml(emp && emp.hireYmd || '-')}</td><td>${escHtml(emp && emp.tenure || '-')}</td><td>${escHtml(emp && emp.career || '-')}</td>`;
+                const empCells = `<td>${escHtml(emp && emp.hireYmd || '-')}</td><td>${escHtml(fmtPeriod(emp && emp.tenure))}</td><td>${escHtml(fmtPeriod(emp && emp.career))}</td>`;
                 if (!info) {
                     return `<tr><td>${escHtml(name)}</td>${empCells}<td colspan="5" class="attendance-empty-cell">데이터 없음</td></tr>`;
                 }
