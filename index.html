@@ -302,7 +302,8 @@
         }
         .attendance-table th { color: #666; font-weight: 700; background: #fafafa; }
         .attendance-table td:first-child, .attendance-table th:first-child { text-align: left; }
-        .attendance-table td.late { color: #d63031; font-weight: 700; }
+        .attendance-table td.late .wt-time { color: #d63031; font-weight: 700; }
+        .attendance-table .wt-totals { font-size: 0.85em; color: #999; margin-top: 2px; }
         .attendance-empty, .attendance-empty-cell {
             text-align: center; color: #aaa; padding: 16px 0; font-size: 0.88em;
         }
@@ -1480,11 +1481,14 @@
                 </div>
                 <div class="attendance-section">
                     <div class="attendance-section-title-row">
-                        <div class="attendance-section-title">출퇴근 현황</div>
+                        <div class="attendance-section-title">월간 근무시간 합계</div>
                         <input type="month" id="attendanceMonthInput" onchange="loadAttendanceMonth(this.value)">
                     </div>
                     <div id="attendanceMonthlyTotals"></div>
                     <div class="attendance-legend" id="attendanceTotalsLegend">기록상 합계 = 실제 출퇴근 시각 기준 · 9시 기준 합계 = 오전 9시 이전 근무는 제외 · 둘 다 하루 점심 1시간 제외</div>
+                </div>
+                <div class="attendance-section">
+                    <div class="attendance-section-title">출퇴근 현황 (일자별)</div>
                     <div id="attendanceWorktimesTable"></div>
                     <div class="attendance-legend">🔴 빨간색 = 그룹웨어 기준 지각 처리된 출근</div>
                 </div>
@@ -1519,7 +1523,7 @@
         <div class="calendar-body">
             <div class="days" id="calendarDays"></div>
         </div>
-        <div class="footer">품질관리팀 Calendar · <a href="javascript:void(0)" onclick="openVersionModal()" title="버전 정보 보기">v<span id="appVersionLabel">1.15.3</span></a></div>
+        <div class="footer">품질관리팀 Calendar · <a href="javascript:void(0)" onclick="openVersionModal()" title="버전 정보 보기">v<span id="appVersionLabel">1.15.4</span></a></div>
     </div>
 
     <!-- 월간 연차 현황 플로팅 -->
@@ -1634,6 +1638,17 @@
 
         // 버전 이력 (최신이 위) — 버전 올릴 때 이 배열 맨 앞에 항목 추가 + 푸터 #appVersionLabel 텍스트 변경
         const VERSION_HISTORY = [
+            {
+                version: '1.15.4',
+                date: '2026-08-11',
+                title: '근태관리 — 레이아웃 정리, 일자별 근무시간 표시',
+                changed: [
+                    '"출퇴근 현황"(일자별 표)을 맨 아래로 이동 — 월간 근무시간 합계가 먼저 보이고, 상세 일자별 표는 그 아래 위치',
+                ],
+                added: [
+                    '일자별 표의 각 칸에 그날의 기록상/9시 기준 근무시간을 함께 표시 (기존엔 월 합계에서만 볼 수 있었음)',
+                ],
+            },
             {
                 version: '1.15.3',
                 date: '2026-08-11',
@@ -3421,7 +3436,16 @@
                     const inTime = (rec && rec.clockIn) || '-';
                     const outTime = (rec && rec.clockOut) || '-';
                     const lateCls = rec && rec.late ? 'late' : '';
-                    return `<td class="${lateCls}">${inTime} / ${outTime}</td>`;
+                    const inMin = rec ? hmToMinutes(rec.clockIn) : null;
+                    const outMin = rec ? hmToMinutes(rec.clockOut) : null;
+                    let totalsHtml = '';
+                    if (inMin != null && outMin != null && outMin > inMin) {
+                        const recordedMin = Math.max(0, outMin - inMin - LUNCH_MIN);
+                        const nineAmStart = Math.max(inMin, NINE_AM_MIN);
+                        const nineAmMin = Math.max(0, outMin - nineAmStart - LUNCH_MIN);
+                        totalsHtml = `<div class="wt-totals">${minutesToHourText(recordedMin)} / 9시 ${minutesToHourText(nineAmMin)}</div>`;
+                    }
+                    return `<td class="${lateCls}"><div class="wt-time">${inTime} / ${outTime}</div>${totalsHtml}</td>`;
                 }).join('');
                 return `<tr><td class="${dateCls}">${ymd.slice(5)} (${DOW[dow]})</td>${cells}</tr>`;
             }).join('');
