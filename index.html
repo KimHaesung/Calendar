@@ -279,8 +279,11 @@
             font-size: 1.5em; cursor: pointer; opacity: 0.85; line-height: 1;
         }
         .attendance-close:hover { opacity: 1; }
-        .attendance-body { padding: 18px 22px; overflow-y: auto; }
-        .attendance-section { margin-bottom: 22px; }
+        .attendance-body { padding: 18px 22px; overflow-y: auto; background: #f4f6f9; }
+        .attendance-section {
+            margin-bottom: 16px; background: #fff; border-radius: 12px;
+            padding: 16px 18px; border: 1px solid #eceef1;
+        }
         .attendance-section:last-child { margin-bottom: 0; }
         .attendance-section-title-row {
             display: flex; justify-content: space-between; align-items: center;
@@ -288,12 +291,42 @@
         }
         .attendance-section-title {
             font-weight: 700; font-size: 0.95em; color: #1e3c72; margin-bottom: 10px;
+            padding-left: 10px; border-left: 3px solid #2a5298;
         }
         .attendance-section-title-row .attendance-section-title { margin-bottom: 0; }
-        #attendanceMonthInput {
-            border: 1px solid #ddd; border-radius: 6px; padding: 5px 8px;
-            font-family: inherit; font-size: 0.88em;
+        .mpicker { position: relative; display: inline-block; }
+        .mpicker-native {
+            position: absolute; opacity: 0; width: 0; height: 0; pointer-events: none;
         }
+        .mpicker-trigger {
+            border: 1px solid #ddd; border-radius: 6px; padding: 5px 10px;
+            font-family: inherit; font-size: 0.88em; background: #fff; color: #333;
+            cursor: pointer; display: inline-flex; align-items: center; gap: 6px;
+        }
+        .mpicker-trigger:hover { background: #f7f9fc; border-color: #c7d3e6; }
+        .mpicker-caret { color: #999; font-size: 0.85em; }
+        .mpicker-panel {
+            display: none; position: absolute; top: calc(100% + 6px); left: 0; z-index: 20;
+            background: #fff; border: 1px solid #e3e6ea; border-radius: 10px;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.14); padding: 10px; width: 190px;
+        }
+        .mpicker-panel.open { display: block; }
+        .mpicker-panel-header {
+            display: flex; align-items: center; justify-content: space-between;
+            font-weight: 700; color: #1e3c72; font-size: 0.9em; margin-bottom: 8px;
+        }
+        .mpicker-panel-header button {
+            border: none; background: none; cursor: pointer; color: #666;
+            font-size: 1em; padding: 2px 6px; border-radius: 4px;
+        }
+        .mpicker-panel-header button:hover { background: #f0f4fb; color: #1e3c72; }
+        .mpicker-months { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+        .mpicker-month-btn {
+            border: 1px solid #e3e6ea; border-radius: 6px; padding: 6px 0; background: #fff;
+            font-family: inherit; font-size: 0.85em; color: #333; cursor: pointer;
+        }
+        .mpicker-month-btn:hover { background: #f0f4fb; border-color: #c7d3e6; }
+        .mpicker-month-btn.selected { background: #2a5298; border-color: #2a5298; color: #fff; font-weight: 700; }
         .attendance-table {
             width: 100%; border-collapse: collapse; font-size: 0.85em;
         }
@@ -301,18 +334,39 @@
             padding: 7px 10px; border-bottom: 1px solid #f0f0f0; text-align: center;
         }
         .attendance-table th { color: #666; font-weight: 700; background: #fafafa; }
-        .attendance-table td:first-child, .attendance-table th:first-child { text-align: left; }
+        .attendance-table td:first-child { text-align: left; }
+        #attendanceWorktimesTable thead th {
+            position: sticky; top: 0; z-index: 2;
+            box-shadow: 0 1px 0 #e5e5e5;
+        }
         .attendance-table td.late .wt-time { color: #d63031; font-weight: 700; }
         .attendance-table td.leave-used { color: #2a78d6; font-weight: 700; }
         .attendance-table td.leave-remain { color: #d63031; font-weight: 700; }
         .attendance-table .wt-totals { font-size: 0.85em; color: #999; margin-top: 2px; text-align: left; }
-        .attendance-table .wt-highlight { background: #dbeeff; color: #1e3c72; padding: 1px 5px; border-radius: 4px; font-weight: 700; }
+        .wt-highlight { background: #dbeeff; color: #1e3c72; padding: 1px 5px; border-radius: 4px; font-weight: 700; }
+        .wt-cards { display: none; }
+        .wt-day-card {
+            border: 1px solid #eceef1; border-radius: 8px; padding: 8px 10px; margin-bottom: 8px;
+        }
+        .wt-day-card:last-child { margin-bottom: 0; }
+        .wt-day-card-header { font-weight: 700; color: #1e3c72; margin-bottom: 4px; font-size: 0.88em; }
+        .wt-day-card-header.date-sunday { color: #e74c3c; }
+        .wt-day-card-header.date-saturday { color: #3498db; }
+        .wt-card-row { padding: 6px 0; border-top: 1px solid #f5f5f5; font-size: 0.85em; }
+        .wt-card-row:first-of-type { border-top: none; }
+        .wt-card-row-top { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+        .wt-card-name { font-weight: 600; color: #333; flex: none; }
+        .wt-card-times { color: #333; text-align: right; }
+        .wt-card-times.late { color: #d63031; font-weight: 700; }
+        .wt-card-extra { color: #999; margin-top: 2px; font-size: 0.92em; }
+        @media (max-width: 640px) {
+            .wt-table-wrap { display: none; }
+            .wt-cards { display: block; }
+        }
         .attendance-chart-controls {
             display: flex; align-items: center; gap: 6px; flex-wrap: wrap;
             font-size: 0.78em; color: #52514e; margin-top: 4px;
-        }
-        .attendance-chart-controls input[type="month"] {
-            border: 1px solid #ddd; border-radius: 6px; padding: 4px 6px; font-family: inherit; font-size: 1em;
+            background: #f4f6f9; border-radius: 8px; padding: 8px 10px;
         }
         .attendance-range-btn {
             border: 1px solid #ddd; border-radius: 6px; padding: 4px 10px; background: #fff;
@@ -332,17 +386,27 @@
         .attendance-chart-svg .axis-label { fill: #898781; font-size: 9px; }
         .attendance-chart-svg .cat-label { fill: #52514e; font-size: 9.5px; font-weight: 600; }
         .attendance-chart-svg .bar-label { fill: #52514e; font-size: 8.5px; }
+        .attendance-chart-svg .rank-label { fill: #1e3c72; font-size: 9px; font-weight: 700; }
         .attendance-chart-svg .bar { transition: filter 0.1s ease; cursor: pointer; }
         .attendance-chart-svg .bar:hover { filter: brightness(1.12); }
         .attendance-empty, .attendance-empty-cell {
             text-align: center; color: #aaa; padding: 16px 0; font-size: 0.88em;
+        }
+        .attendance-chip-row {
+            display: flex; flex-wrap: wrap; gap: 6px 14px; margin-top: 10px;
+        }
+        .attendance-chip {
+            display: inline-flex; align-items: center; gap: 6px;
+            font-size: 0.78em; color: #666;
+        }
+        .attendance-chip i {
+            width: 9px; height: 9px; border-radius: 50%; display: inline-block; flex: none;
         }
         .attendance-legend {
             margin-top: 6px; font-size: 0.75em; color: #999; text-align: right;
         }
         #attendanceMonthlyTotals { margin-bottom: 4px; }
         #attendanceTotalsLegend { margin-bottom: 14px; padding-bottom: 14px; border-bottom: 1px solid #f0f0f0; text-align: left; }
-        #attendanceTotalsLegend div + div { margin-top: 3px; }
         .attendance-table td.date-sunday { color: #e74c3c; }
         .attendance-table td.date-saturday { color: #3498db; }
         .attendance-sync {
@@ -354,6 +418,27 @@
         @media (max-width: 768px) {
             .attendance-table { font-size: 0.78em; }
             .attendance-table th, .attendance-table td { padding: 5px 6px; }
+        }
+        @media (max-width: 640px) {
+            .attendance-body { padding: 14px; }
+            .attendance-section { padding: 12px; }
+            .attendance-table.leave-table thead { display: none; }
+            .attendance-table.leave-table tr {
+                display: block; border: 1px solid #eceef1; border-radius: 8px;
+                padding: 8px 10px; margin-bottom: 8px;
+            }
+            .attendance-table.leave-table tr:last-child { margin-bottom: 0; }
+            .attendance-table.leave-table td {
+                display: flex; justify-content: space-between; align-items: center;
+                border-bottom: none; padding: 4px 0; text-align: right;
+            }
+            .attendance-table.leave-table td::before {
+                content: attr(data-label); font-weight: 600; color: #888; text-align: left;
+            }
+            .attendance-table.leave-table td:first-child {
+                justify-content: flex-start; font-weight: 700; color: #1e3c72; font-size: 1.05em;
+            }
+            .attendance-table.leave-table td:first-child::before { content: none; }
         }
 
         .calendar-body { padding: 12px; }
@@ -1513,24 +1598,39 @@
                 <div class="attendance-section">
                     <div class="attendance-section-title-row">
                         <div class="attendance-section-title">출퇴근 현황 (일자별)</div>
-                        <input type="month" id="attendanceMonthInput" onchange="loadAttendanceMonth(this.value)">
+                        <div class="mpicker" id="mpAttMonth">
+                            <input type="month" id="attendanceMonthInput" class="mpicker-native" onchange="loadAttendanceMonth(this.value)" tabindex="-1">
+                            <button type="button" class="mpicker-trigger" onclick="toggleMonthPicker(event, 'mpAttMonth')"><span class="mpicker-label"></span><span class="mpicker-caret">▾</span></button>
+                            <div class="mpicker-panel"></div>
+                        </div>
                     </div>
                     <div id="attendanceWorktimesTable"></div>
-                    <div class="attendance-legend">🔴 빨간색 = 그룹웨어 기준 지각 처리된 출근 · 🔵 옅은 파란색 = 그날 가장 일찍 출근 / 가장 늦게 퇴근</div>
+                    <div class="attendance-chip-row">
+                        <span class="attendance-chip"><i style="background:#d63031"></i>빨간색 = 그룹웨어 기준 지각 처리된 출근</span>
+                        <span class="attendance-chip"><i style="background:#dbeeff;border:1px solid #bcd8f5"></i>옅은 파란색 = 그날 가장 일찍 출근 / 가장 늦게 퇴근</span>
+                    </div>
                 </div>
                 <div class="attendance-section">
                     <div class="attendance-section-title">월간 근무시간 합계</div>
                     <div id="attendanceMonthlyTotals"></div>
-                    <div class="attendance-legend" id="attendanceTotalsLegend">
-                        <div>인정 근무 = 그룹웨어 인정근무 기준(연차 등 포함, 점심 1시간 제외)</div>
-                        <div>9시 기준 = 출근 9시 이후로 계산(조기출근 미반영, 점심 1시간 제외)</div>
-                        <div>연장 근무 = 그룹웨어 연장근무 기준(실제 출퇴근 있는 날만 집계)</div>
+                    <div class="attendance-chip-row" id="attendanceTotalsLegend">
+                        <span class="attendance-chip"><i style="background:#2a78d6"></i>인정 근무 = 그룹웨어 인정근무 기준(연차 등 포함, 점심 1시간 제외)</span>
+                        <span class="attendance-chip"><i style="background:#eb6834"></i>9시 기준 = 출근 9시 이후로 계산(조기출근 미반영, 점심 1시간 제외)</span>
+                        <span class="attendance-chip"><i style="background:#999"></i>연장 근무 = 그룹웨어 연장근무 기준(실제 출퇴근 있는 날만 집계)</span>
                     </div>
                     <div class="attendance-chart-controls">
                         <span>그래프 기간</span>
-                        <input type="month" id="attendanceChartStart" onchange="loadAttendanceChartRange()">
+                        <div class="mpicker" id="mpChartStart">
+                            <input type="month" id="attendanceChartStart" class="mpicker-native" onchange="loadAttendanceChartRange()" tabindex="-1">
+                            <button type="button" class="mpicker-trigger" onclick="toggleMonthPicker(event, 'mpChartStart')"><span class="mpicker-label"></span><span class="mpicker-caret">▾</span></button>
+                            <div class="mpicker-panel"></div>
+                        </div>
                         <span>~</span>
-                        <input type="month" id="attendanceChartEnd" onchange="loadAttendanceChartRange()">
+                        <div class="mpicker" id="mpChartEnd">
+                            <input type="month" id="attendanceChartEnd" class="mpicker-native" onchange="loadAttendanceChartRange()" tabindex="-1">
+                            <button type="button" class="mpicker-trigger" onclick="toggleMonthPicker(event, 'mpChartEnd')"><span class="mpicker-label"></span><span class="mpicker-caret">▾</span></button>
+                            <div class="mpicker-panel"></div>
+                        </div>
                         <button type="button" class="attendance-range-btn" onclick="setAttendanceChartRangeToYear()">올해 전체</button>
                     </div>
                     <div id="attendanceMonthlyChart" class="attendance-chart-wrap"></div>
@@ -1566,7 +1666,7 @@
         <div class="calendar-body">
             <div class="days" id="calendarDays"></div>
         </div>
-        <div class="footer">품질관리팀 Calendar · <a href="javascript:void(0)" onclick="openVersionModal()" title="버전 정보 보기">v<span id="appVersionLabel">1.15.19</span></a></div>
+        <div class="footer">품질관리팀 Calendar · <a href="javascript:void(0)" onclick="openVersionModal()" title="버전 정보 보기">v<span id="appVersionLabel">1.16.0</span></a></div>
     </div>
 
     <!-- 월간 연차 현황 플로팅 -->
@@ -1681,6 +1781,23 @@
 
         // 버전 이력 (최신이 위) — 버전 올릴 때 이 배열 맨 앞에 항목 추가 + 푸터 #appVersionLabel 텍스트 변경
         const VERSION_HISTORY = [
+            {
+                version: '1.16.0',
+                date: '2026-08-12',
+                title: '근태관리 — 레이아웃/디자인 다듬기',
+                changed: [
+                    '섹션(연차 현황/출퇴근 현황/월간 합계)을 카드 형태(배경·테두리·좌측 강조선)로 구분해 시각적 위계 강화',
+                    '지각·강조·인정근무/9시기준/연장근무 안내 문구를 색상 점이 있는 칩(chip) 형태로 변경해 한눈에 들어오게 개선',
+                    '연차 현황 표가 좁은 화면(≤640px)에서는 가로 스크롤 대신 이름별 카드(라벨: 값) 형태로 전환되도록 반응형 개선',
+                    '그래프 기간 선택 컨트롤에 배경을 넣어 작은 툴바처럼 구분',
+                    '연차 현황 표의 "직급" 열 이름을 "직책"으로 변경',
+                    '연차 현황/출퇴근 현황 표의 헤더 타이틀(이름·날짜 포함)을 다른 열과 동일하게 가운데 정렬',
+                    '출퇴근 현황(일자별) 표 헤더에 고정(sticky) 적용 — 별도 스크롤 영역 없이 패널 전체 스크롤 하나로 이어지면서, 아래로 스크롤해도 [날짜]·팀원 이름 헤더가 상단에 유지되어 어느 칸인지 계속 알 수 있음',
+                    '월 선택 달력 입력창(출퇴근 현황/그래프 기간)을 자체 제작한 드롭다운(년도 이동 + 12개월 그리드)으로 교체 — 네이티브 달력 팝업의 "지우기" 링크는 브라우저 UI라 CSS로 제거가 불가능해 완전히 직접 구현으로 대체',
+                    '출퇴근 현황(일자별) 표를 좁은 화면(≤640px)에서는 6열 표 대신 날짜별 카드 + 팀원별 한 줄(이름·출퇴근 시각·인정/보정/연장 요약) 목록으로 전환 — 이름·시간이 한두 글자씩 줄바꿈되던 문제 해결',
+                    '월간 근무시간 합계 그래프에 인정 근무 기준 순위(1~3위는 메달, 이후 N위) 배지 추가',
+                ],
+            },
             {
                 version: '1.15.19',
                 date: '2026-08-11',
@@ -3459,17 +3576,106 @@
             return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0');
         }
 
+        // 커스텀 월 선택 드롭다운 — 네이티브 <input type="month"> 팝업의 "지우기" 링크 등은 브라우저 자체 UI라 CSS로 없앨 수 없어 직접 구현.
+        // 실제 값은 숨겨둔 .mpicker-native input이 그대로 들고 있어 기존 onchange 로직(loadAttendanceMonth 등)을 그대로 재사용함.
+        const MPICKER_WRAP_OF = { attendanceMonthInput: 'mpAttMonth', attendanceChartStart: 'mpChartStart', attendanceChartEnd: 'mpChartEnd' };
+        let mpOpenWrapId = null;
+        const mpPanelYear = {};
+
+        function mpLabel(value) {
+            const m = String(value || '').match(/^(\d{4})-(\d{2})$/);
+            return m ? `${Number(m[1])}년 ${Number(m[2])}월` : '월 선택';
+        }
+
+        function mpUpdateLabel(wrapId) {
+            const wrap = document.getElementById(wrapId);
+            if (!wrap) return;
+            const input = wrap.querySelector('.mpicker-native');
+            const label = wrap.querySelector('.mpicker-label');
+            if (input && label) label.textContent = mpLabel(input.value);
+        }
+
+        function mpSetValue(inputId, value) {
+            const el = document.getElementById(inputId);
+            if (!el) return;
+            el.value = value;
+            mpUpdateLabel(MPICKER_WRAP_OF[inputId]);
+        }
+
+        function closeAllMonthPickers() {
+            document.querySelectorAll('.mpicker-panel.open').forEach(p => p.classList.remove('open'));
+            mpOpenWrapId = null;
+        }
+
+        function toggleMonthPicker(e, wrapId) {
+            e.stopPropagation();
+            const wrap = document.getElementById(wrapId);
+            const panel = wrap.querySelector('.mpicker-panel');
+            const willOpen = !panel.classList.contains('open');
+            closeAllMonthPickers();
+            if (!willOpen) return;
+            const input = wrap.querySelector('.mpicker-native');
+            const cur = (input.value || attendanceMonthKey()).split('-');
+            mpPanelYear[wrapId] = Number(cur[0]);
+            renderMonthPickerPanel(wrapId);
+            panel.style.left = '0'; panel.style.right = 'auto';
+            panel.classList.add('open');
+            mpOpenWrapId = wrapId;
+            // 모달 밖으로 넘치면 반대쪽(오른쪽 기준)으로 붙임
+            const bound = (wrap.closest('.attendance-box') || document.body).getBoundingClientRect();
+            const panelRect = panel.getBoundingClientRect();
+            if (panelRect.right > bound.right) { panel.style.left = 'auto'; panel.style.right = '0'; }
+        }
+
+        function renderMonthPickerPanel(wrapId) {
+            const wrap = document.getElementById(wrapId);
+            const panel = wrap.querySelector('.mpicker-panel');
+            const input = wrap.querySelector('.mpicker-native');
+            const year = mpPanelYear[wrapId];
+            const curValue = input.value;
+            const monthsHtml = Array.from({ length: 12 }, (_, i) => {
+                const m = i + 1;
+                const val = `${year}-${String(m).padStart(2, '0')}`;
+                return `<button type="button" class="mpicker-month-btn${val === curValue ? ' selected' : ''}" onclick="mpPickMonth('${wrapId}', ${m})">${m}월</button>`;
+            }).join('');
+            panel.innerHTML = `
+                <div class="mpicker-panel-header">
+                    <button type="button" onclick="mpShiftYear('${wrapId}', -1)">◀</button>
+                    <span>${year}년</span>
+                    <button type="button" onclick="mpShiftYear('${wrapId}', 1)">▶</button>
+                </div>
+                <div class="mpicker-months">${monthsHtml}</div>`;
+        }
+
+        function mpShiftYear(wrapId, delta) {
+            mpPanelYear[wrapId] += delta;
+            renderMonthPickerPanel(wrapId);
+        }
+
+        function mpPickMonth(wrapId, month) {
+            const wrap = document.getElementById(wrapId);
+            const input = wrap.querySelector('.mpicker-native');
+            input.value = `${mpPanelYear[wrapId]}-${String(month).padStart(2, '0')}`;
+            mpUpdateLabel(wrapId);
+            input.dispatchEvent(new Event('change'));
+            closeAllMonthPickers();
+        }
+
+        document.addEventListener('click', (e) => {
+            if (mpOpenWrapId && !e.target.closest('#' + mpOpenWrapId)) closeAllMonthPickers();
+        });
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && mpOpenWrapId) closeAllMonthPickers();
+        });
+
         function openAttendancePanel() {
             if (!isAdminUser()) return;
             document.getElementById('attendanceOverlay').classList.add('active');
-            const input = document.getElementById('attendanceMonthInput');
             // 열 때마다 캘린더가 보고 있는 달(currentYear/currentMonth)로 맞춤 — 달력에서 이전/다음 달로 옮긴 뒤 열면 그 달이 보이게
             const key = (currentYear && currentMonth) ? `${currentYear}-${String(currentMonth).padStart(2, '0')}` : attendanceMonthKey();
-            if (input) input.value = key;
-            const startEl = document.getElementById('attendanceChartStart');
-            const endEl = document.getElementById('attendanceChartEnd');
-            if (startEl) startEl.value = key;
-            if (endEl) endEl.value = key;
+            mpSetValue('attendanceMonthInput', key);
+            mpSetValue('attendanceChartStart', key);
+            mpSetValue('attendanceChartEnd', key);
             renderAttendanceLeaveTable();
             loadAttendanceMonth(key);
             setupAttendanceMetaListener();
@@ -3508,10 +3714,8 @@
             }
             attendanceListenerMonth = monthKey;
             // 단일 달 선택이 바뀌면 그래프 기간도 같은 달로 되돌려 표/그래프가 어긋나지 않게 함
-            const startEl = document.getElementById('attendanceChartStart');
-            const endEl = document.getElementById('attendanceChartEnd');
-            if (startEl) startEl.value = monthKey;
-            if (endEl) endEl.value = monthKey;
+            mpSetValue('attendanceChartStart', monthKey);
+            mpSetValue('attendanceChartEnd', monthKey);
             db.ref('/attendance/' + monthKey).on('value', function(snap) {
                 attendanceData = snap.val() || {};
                 renderAttendanceWorktimes();
@@ -3555,8 +3759,8 @@
             if (!startKey || !endKey) return;
             if (startKey > endKey) {
                 [startKey, endKey] = [endKey, startKey];
-                startEl.value = startKey;
-                endEl.value = endKey;
+                mpSetValue('attendanceChartStart', startKey);
+                mpSetValue('attendanceChartEnd', endKey);
             }
             const keys = monthRangeKeys(startKey, endKey);
             const snaps = await Promise.all(keys.map(k =>
@@ -3568,10 +3772,8 @@
 
         function setAttendanceChartRangeToYear() {
             const y = currentYear || new Date().getFullYear();
-            const startEl = document.getElementById('attendanceChartStart');
-            const endEl = document.getElementById('attendanceChartEnd');
-            if (startEl) startEl.value = `${y}-01`;
-            if (endEl) endEl.value = `${y}-12`;
+            mpSetValue('attendanceChartStart', `${y}-01`);
+            mpSetValue('attendanceChartEnd', `${y}-12`);
             loadAttendanceChartRange();
         }
 
@@ -3601,22 +3803,22 @@
             const rows = TEAM_MEMBERS.map(name => {
                 const info = annualLeaveData[name];
                 const emp = employeeInfoData[name];
-                const empCells = `<td>${escHtml(emp && emp.hireYmd || '-')}</td><td>${escHtml(fmtPeriod(emp && emp.tenure))}</td><td>${escHtml(fmtPeriod(emp && emp.career))}</td>`;
+                const empCells = `<td data-label="입사일">${escHtml(emp && emp.hireYmd || '-')}</td><td data-label="총 재직기간">${escHtml(fmtPeriod(emp && emp.tenure))}</td><td data-label="총 경력">${escHtml(fmtPeriod(emp && emp.career))}</td>`;
                 if (!info) {
-                    return `<tr><td>${escHtml(name)}</td>${empCells}<td colspan="5" class="attendance-empty-cell">데이터 없음</td></tr>`;
+                    return `<tr><td>${escHtml(name)}</td>${empCells}<td colspan="5" class="attendance-empty-cell" data-label="">데이터 없음</td></tr>`;
                 }
                 return `<tr>
                     <td>${escHtml(name)}</td>
                     ${empCells}
-                    <td>${escHtml(info.organizationName || '')}</td>
-                    <td>${escHtml(info.dutyName || '')}</td>
-                    <td>${fmt(info.yearNum)}</td>
-                    <td class="leave-used">${fmt(info.totalUsedNum)}</td>
-                    <td class="leave-remain">${fmt(info.remainNum)}</td>
+                    <td data-label="부서">${escHtml(info.organizationName || '')}</td>
+                    <td data-label="직책">${escHtml(info.dutyName || '')}</td>
+                    <td data-label="총부여">${fmt(info.yearNum)}</td>
+                    <td class="leave-used" data-label="사용">${fmt(info.totalUsedNum)}</td>
+                    <td class="leave-remain" data-label="잔여">${fmt(info.remainNum)}</td>
                 </tr>`;
             }).join('');
-            el.innerHTML = `<div style="overflow-x:auto"><table class="attendance-table">
-                <thead><tr><th>이름</th><th>입사일</th><th>총 재직기간</th><th>총 경력</th><th>부서</th><th>직급</th><th>총부여</th><th>사용</th><th>잔여</th></tr></thead>
+            el.innerHTML = `<div style="overflow-x:auto"><table class="attendance-table leave-table">
+                <thead><tr><th>이름</th><th>입사일</th><th>총 재직기간</th><th>총 경력</th><th>부서</th><th>직책</th><th>총부여</th><th>사용</th><th>잔여</th></tr></thead>
                 <tbody>${rows}</tbody>
             </table></div>`;
         }
@@ -3707,8 +3909,14 @@
             const maxHours = Math.max(1, ...cats.map(name => Math.max(hoursOf(totals[name].recorded), hoursOf(totals[name].nineAm))));
             const niceMax = Math.ceil((maxHours * 1.1) / 20) * 20 || 20; // 여유 10% + 20단위 반올림
 
-            const W = 600, H = 220;
-            const marginLeft = 32, marginRight = 10, marginTop = 16, marginBottom = 26;
+            // 인정 근무(recorded) 기준 순위 — 동률이면 9시 기준 합계로 보조 비교
+            const ranked = [...cats].sort((a, b) => (totals[b].recorded - totals[a].recorded) || (totals[b].nineAm - totals[a].nineAm));
+            const rankOf = {};
+            ranked.forEach((name, i) => { rankOf[name] = i + 1; });
+            const MEDAL = { 1: '🥇', 2: '🥈', 3: '🥉' };
+
+            const W = 600, H = 234;
+            const marginLeft = 32, marginRight = 10, marginTop = 30, marginBottom = 26;
             const plotW = W - marginLeft - marginRight;
             const plotH = H - marginTop - marginBottom;
             const groupW = plotW / cats.length;
@@ -3743,6 +3951,10 @@
                 barsHtml += `<rect class="bar" x="${(pairX + barW + barGap).toFixed(1)}" y="${nineY.toFixed(1)}" width="${barW.toFixed(1)}" height="${nineH.toFixed(1)}" rx="4" ry="4" fill="${COLOR_NINEAM}"><title>${nameEsc} · 9시 기준 합계: ${minutesToHourText(t.nineAm)}</title></rect>`;
                 barsHtml += `<text class="bar-label" x="${(pairX + barW / 2).toFixed(1)}" y="${(recY - 4).toFixed(1)}" text-anchor="middle">${fmtShort(t.recorded)}</text>`;
                 barsHtml += `<text class="bar-label" x="${(pairX + barW + barGap + barW / 2).toFixed(1)}" y="${(nineY - 4).toFixed(1)}" text-anchor="middle">${fmtShort(t.nineAm)}</text>`;
+                const rank = rankOf[name];
+                const rankText = (MEDAL[rank] || '') + rank + '위';
+                const rankY = Math.min(recY, nineY) - 15;
+                barsHtml += `<text class="rank-label" x="${(groupX + groupW / 2).toFixed(1)}" y="${rankY.toFixed(1)}" text-anchor="middle">${rankText}</text>`;
                 catLabelsHtml += `<text class="cat-label" x="${(groupX + groupW / 2).toFixed(1)}" y="${H - marginBottom + 16}" text-anchor="middle">${nameEsc}</text>`;
             });
 
@@ -3781,7 +3993,9 @@
             const dates = daysInMonthKey(attendanceListenerMonth);
             const DOW = ['일', '월', '화', '수', '목', '금', '토'];
             const head = '<tr><th>날짜</th>' + TEAM_MEMBERS.map(n => `<th>${escHtml(n)}</th>`).join('') + '</tr>';
-            const rows = dates.map(ymd => {
+            let tableRows = '';
+            let cardsHtml = '';
+            dates.forEach(ymd => {
                 const dayData = attendanceData[ymd] || {};
                 const dow = new Date(ymd + 'T00:00:00').getDay();
                 const dateCls = dow === 0 ? 'date-sunday' : dow === 6 ? 'date-saturday' : '';
@@ -3797,7 +4011,9 @@
                     if (outM != null && (latestOut == null || outM > latestOut)) latestOut = outM;
                 });
 
-                const cells = TEAM_MEMBERS.map(name => {
+                let tableCells = '';
+                let cardRows = '';
+                TEAM_MEMBERS.forEach(name => {
                     const rec = dayData[name];
                     const inTime = (rec && rec.clockIn) || '-';
                     const outTime = (rec && rec.clockOut) || '-';
@@ -3806,26 +4022,39 @@
                     const outMin = rec ? hmToMinutes(rec.clockOut) : null;
                     const inHl = inMin != null && inMin === earliestIn ? 'wt-highlight' : '';
                     const outHl = outMin != null && outMin === latestOut ? 'wt-highlight' : '';
-                    let totalsHtml = '';
-                    if (rec && rec.recognizedMin) {
-                        totalsHtml += `<div class="wt-totals">인정: ${minutesToHourText(rec.recognizedMin)}</div>`;
-                    }
+                    const totals = [];
+                    if (rec && rec.recognizedMin) totals.push(`인정 ${minutesToHourText(rec.recognizedMin)}`);
                     if (inMin != null && outMin != null && outMin > inMin) {
                         const nineAmStart = Math.max(inMin, NINE_AM_MIN);
                         const nineAmMin = Math.max(0, outMin - nineAmStart - LUNCH_MIN);
-                        totalsHtml += `<div class="wt-totals">보정: ${minutesToHourText(nineAmMin)}</div>`;
+                        totals.push(`보정 ${minutesToHourText(nineAmMin)}`);
                     } else if (rec && rec.recognizedMin) {
                         // 출퇴근 기록 없이 인정근무만 있는 날(연차 등) — 9시 기준에도 그대로 반영
-                        totalsHtml += `<div class="wt-totals">보정: ${minutesToHourText(rec.recognizedMin)}</div>`;
+                        totals.push(`보정 ${minutesToHourText(rec.recognizedMin)}`);
                     }
-                    if (rec && rec.overtimeMin) {
-                        totalsHtml += `<div class="wt-totals">연장: ${minutesToHourText(rec.overtimeMin)}</div>`;
-                    }
-                    return `<td class="${lateCls}"><div class="wt-time"><span class="${inHl}">${inTime}</span> / <span class="${outHl}">${outTime}</span></div>${totalsHtml}</td>`;
-                }).join('');
-                return `<tr><td class="${dateCls}">${ymd.slice(5)} (${DOW[dow]})</td>${cells}</tr>`;
-            }).join('');
-            el.innerHTML = `<table class="attendance-table"><thead>${head}</thead><tbody>${rows}</tbody></table>`;
+                    if (rec && rec.overtimeMin) totals.push(`연장 ${minutesToHourText(rec.overtimeMin)}`);
+                    const totalsHtml = totals.map(t => `<div class="wt-totals">${escHtml(t.replace(' ', ': '))}</div>`).join('');
+                    const timesHtml = `<span class="${inHl}">${inTime}</span> / <span class="${outHl}">${outTime}</span>`;
+
+                    tableCells += `<td class="${lateCls}"><div class="wt-time">${timesHtml}</div>${totalsHtml}</td>`;
+                    cardRows += `<div class="wt-card-row">
+                        <div class="wt-card-row-top">
+                            <span class="wt-card-name">${escHtml(name)}</span>
+                            <span class="wt-card-times ${lateCls}">${timesHtml}</span>
+                        </div>
+                        ${totals.length ? `<div class="wt-card-extra">${escHtml(totals.join(' · '))}</div>` : ''}
+                    </div>`;
+                });
+
+                tableRows += `<tr><td class="${dateCls}">${ymd.slice(5)} (${DOW[dow]})</td>${tableCells}</tr>`;
+                cardsHtml += `<div class="wt-day-card">
+                    <div class="wt-day-card-header ${dateCls}">${ymd.slice(5)} (${DOW[dow]})</div>
+                    ${cardRows}
+                </div>`;
+            });
+            el.innerHTML = `
+                <div class="wt-table-wrap"><table class="attendance-table"><thead>${head}</thead><tbody>${tableRows}</tbody></table></div>
+                <div class="wt-cards">${cardsHtml}</div>`;
         }
 
         function renderAttendanceSyncStatus() {
