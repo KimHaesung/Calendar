@@ -309,6 +309,8 @@
         .attendance-legend {
             margin-top: 6px; font-size: 0.75em; color: #999; text-align: right;
         }
+        #attendanceMonthlyTotals { margin-bottom: 4px; }
+        #attendanceTotalsLegend { margin-bottom: 14px; padding-bottom: 14px; border-bottom: 1px solid #f0f0f0; }
         .attendance-table td.date-sunday { color: #e74c3c; }
         .attendance-table td.date-saturday { color: #3498db; }
         .attendance-sync {
@@ -1481,6 +1483,8 @@
                         <div class="attendance-section-title">출퇴근 현황</div>
                         <input type="month" id="attendanceMonthInput" onchange="loadAttendanceMonth(this.value)">
                     </div>
+                    <div id="attendanceMonthlyTotals"></div>
+                    <div class="attendance-legend" id="attendanceTotalsLegend">기록상 합계 = 실제 출퇴근 시각 기준 · 9시 기준 합계 = 오전 9시 이전 근무는 제외 · 둘 다 하루 점심 1시간 제외</div>
                     <div id="attendanceWorktimesTable"></div>
                     <div class="attendance-legend">🔴 빨간색 = 그룹웨어 기준 지각 처리된 출근</div>
                 </div>
@@ -1515,7 +1519,7 @@
         <div class="calendar-body">
             <div class="days" id="calendarDays"></div>
         </div>
-        <div class="footer">품질관리팀 Calendar · <a href="javascript:void(0)" onclick="openVersionModal()" title="버전 정보 보기">v<span id="appVersionLabel">1.15.2</span></a></div>
+        <div class="footer">품질관리팀 Calendar · <a href="javascript:void(0)" onclick="openVersionModal()" title="버전 정보 보기">v<span id="appVersionLabel">1.15.3</span></a></div>
     </div>
 
     <!-- 월간 연차 현황 플로팅 -->
@@ -1630,6 +1634,14 @@
 
         // 버전 이력 (최신이 위) — 버전 올릴 때 이 배열 맨 앞에 항목 추가 + 푸터 #appVersionLabel 텍스트 변경
         const VERSION_HISTORY = [
+            {
+                version: '1.15.3',
+                date: '2026-08-11',
+                title: '근태관리 — 월간 총 근무시간 합계 추가',
+                added: [
+                    '출퇴근 현황 위에 팀원별 "월간 총 근무시간" 표 추가 — 점심 1시간 제외. "기록상 합계"(실제 출퇴근 그대로)와 "9시 기준 합계"(오전 9시 이전 조기출근분 제외) 2가지로 비교 표시',
+                ],
+            },
             {
                 version: '1.15.2',
                 date: '2026-08-11',
@@ -3336,7 +3348,61 @@
             </table>`;
         }
 
+        // "08:15" → 495(분), 형식이 아니면 null
+        function hmToMinutes(hm) {
+            const m = String(hm || '').match(/^(\d{2}):(\d{2})$/);
+            return m ? Number(m[1]) * 60 + Number(m[2]) : null;
+        }
+        function minutesToHourText(mins) {
+            const h = Math.floor(mins / 60), m = mins % 60;
+            return m ? `${h}시간 ${m}분` : `${h}시간`;
+        }
+        const LUNCH_MIN = 60;
+        const NINE_AM_MIN = 9 * 60;
+
+        // 팀원별 월간 총 근무시간 — 점심 1시간 제외.
+        // recorded = 실제 출퇴근 그대로, nineAm = 오전 9시 이전 근무는 제외하고 계산 (조기출근 미반영)
+        function computeMonthlyTotals(data) {
+            const totals = {};
+            TEAM_MEMBERS.forEach(name => { totals[name] = { recorded: 0, nineAm: 0, days: 0 }; });
+            for (const ymdKey in data) {
+                const dayData = data[ymdKey] || {};
+                for (const name of TEAM_MEMBERS) {
+                    const rec = dayData[name];
+                    if (!rec || !rec.clockIn || !rec.clockOut) continue;
+                    const inMin = hmToMinutes(rec.clockIn);
+                    const outMin = hmToMinutes(rec.clockOut);
+                    if (inMin == null || outMin == null || outMin <= inMin) continue;
+                    totals[name].recorded += Math.max(0, outMin - inMin - LUNCH_MIN);
+                    const nineAmStart = Math.max(inMin, NINE_AM_MIN);
+                    totals[name].nineAm += Math.max(0, outMin - nineAmStart - LUNCH_MIN);
+                    totals[name].days++;
+                }
+            }
+            return totals;
+        }
+
+        function renderAttendanceMonthlyTotals(data) {
+            const el = document.getElementById('attendanceMonthlyTotals');
+            if (!el) return;
+            const totals = computeMonthlyTotals(data);
+            const rows = TEAM_MEMBERS.map(name => {
+                const t = totals[name];
+                if (!t.days) return `<tr><td>${escHtml(name)}</td><td colspan="2" class="attendance-empty-cell">데이터 없음</td></tr>`;
+                return `<tr>
+                    <td>${escHtml(name)}</td>
+                    <td>${minutesToHourText(t.recorded)}</td>
+                    <td>${minutesToHourText(t.nineAm)}</td>
+                </tr>`;
+            }).join('');
+            el.innerHTML = `<table class="attendance-table">
+                <thead><tr><th>이름</th><th>기록상 합계</th><th>9시 기준 합계</th></tr></thead>
+                <tbody>${rows}</tbody>
+            </table>`;
+        }
+
         function renderAttendanceWorktimes() {
+            renderAttendanceMonthlyTotals(attendanceData);
             const el = document.getElementById('attendanceWorktimesTable');
             if (!el) return;
             const dates = Object.keys(attendanceData).sort();
