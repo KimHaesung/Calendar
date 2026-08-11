@@ -1518,7 +1518,7 @@
                 <div class="attendance-section">
                     <div class="attendance-section-title">월간 근무시간 합계</div>
                     <div id="attendanceMonthlyTotals"></div>
-                    <div class="attendance-legend" id="attendanceTotalsLegend">기록상 합계 = 실제 출퇴근 시각 기준 · 9시 기준 합계 = 오전 9시 이전 근무는 제외 · 둘 다 하루 점심 1시간 제외</div>
+                    <div class="attendance-legend" id="attendanceTotalsLegend">기록상 합계 = 그룹웨어 인정근무 기준(연차 등 포함) · 9시 기준 합계 = 실제 출퇴근 시각에서 오전 9시 이전 근무 제외, 점심 1시간 제외</div>
                     <div class="attendance-chart-controls">
                         <span>그래프 기간</span>
                         <input type="month" id="attendanceChartStart" onchange="loadAttendanceChartRange()">
@@ -1559,7 +1559,7 @@
         <div class="calendar-body">
             <div class="days" id="calendarDays"></div>
         </div>
-        <div class="footer">품질관리팀 Calendar · <a href="javascript:void(0)" onclick="openVersionModal()" title="버전 정보 보기">v<span id="appVersionLabel">1.15.9</span></a></div>
+        <div class="footer">품질관리팀 Calendar · <a href="javascript:void(0)" onclick="openVersionModal()" title="버전 정보 보기">v<span id="appVersionLabel">1.15.10</span></a></div>
     </div>
 
     <!-- 월간 연차 현황 플로팅 -->
@@ -1674,6 +1674,18 @@
 
         // 버전 이력 (최신이 위) — 버전 올릴 때 이 배열 맨 앞에 항목 추가 + 푸터 #appVersionLabel 텍스트 변경
         const VERSION_HISTORY = [
+            {
+                version: '1.15.10',
+                date: '2026-08-11',
+                title: '근태관리 — 기록상 합계를 그룹웨어 인정근무 기준으로 교체',
+                changed: [
+                    '"기록상 합계"를 실제 출퇴근 시각으로 직접 계산하던 방식에서 그룹웨어의 인정근무(recognizedWork) 값을 그대로 사용하도록 변경 — 연차 등 휴가로 출퇴근 기록이 없는 날도 정확히 반영됨. "9시 기준 합계"는 기존처럼 실제 출퇴근 시각 기준 유지',
+                ],
+                fixed: [
+                    '동기화 스크립트가 요청한 달 범위 밖 날짜를 함께 받아와 다른 달 데이터에 섞여 들어가던 문제 수정',
+                    '실제 출퇴근 기록 없이 주말에만 인정근무가 찍히는 이상치 데이터가 합계에 섞이지 않도록 제외',
+                ],
+            },
             {
                 version: '1.15.9',
                 date: '2026-08-11',
@@ -3516,23 +3528,34 @@
         const LUNCH_MIN = 60;
         const NINE_AM_MIN = 9 * 60;
 
-        // 팀원별 월간 총 근무시간 — 점심 1시간 제외.
-        // recorded = 실제 출퇴근 그대로, nineAm = 오전 9시 이전 근무는 제외하고 계산 (조기출근 미반영)
+        // 팀원별 월간 총 근무시간.
+        // recorded = 그룹웨어 인정근무(recognizedMin) 그대로 — 연차 등으로 출퇴근 기록이 없어도 반영됨.
+        //            단, 실제 출퇴근 기록도 없이 주말에만 인정근무가 찍히는 경우(그룹웨어 쪽 이상치로 보임)는 합계에서 제외.
+        // nineAm = 실제 출퇴근 시각 기준, 오전 9시 이전 근무는 제외(조기출근 미반영), 점심 1시간 제외
         function computeMonthlyTotals(data) {
             const totals = {};
             TEAM_MEMBERS.forEach(name => { totals[name] = { recorded: 0, nineAm: 0, days: 0 }; });
             for (const ymdKey in data) {
                 const dayData = data[ymdKey] || {};
+                const dow = new Date(ymdKey + 'T00:00:00').getDay();
+                const isWeekend = dow === 0 || dow === 6;
                 for (const name of TEAM_MEMBERS) {
                     const rec = dayData[name];
-                    if (!rec || !rec.clockIn || !rec.clockOut) continue;
+                    if (!rec) continue;
+                    let hasData = false;
+                    const hasClock = !!(rec.clockIn || rec.clockOut);
+                    if (rec.recognizedMin && !(isWeekend && !hasClock)) {
+                        totals[name].recorded += rec.recognizedMin;
+                        hasData = true;
+                    }
                     const inMin = hmToMinutes(rec.clockIn);
                     const outMin = hmToMinutes(rec.clockOut);
-                    if (inMin == null || outMin == null || outMin <= inMin) continue;
-                    totals[name].recorded += Math.max(0, outMin - inMin - LUNCH_MIN);
-                    const nineAmStart = Math.max(inMin, NINE_AM_MIN);
-                    totals[name].nineAm += Math.max(0, outMin - nineAmStart - LUNCH_MIN);
-                    totals[name].days++;
+                    if (inMin != null && outMin != null && outMin > inMin) {
+                        const nineAmStart = Math.max(inMin, NINE_AM_MIN);
+                        totals[name].nineAm += Math.max(0, outMin - nineAmStart - LUNCH_MIN);
+                        hasData = true;
+                    }
+                    if (hasData) totals[name].days++;
                 }
             }
             return totals;
@@ -3675,11 +3698,13 @@
                     const inHl = inMin != null && inMin === earliestIn ? 'wt-highlight' : '';
                     const outHl = outMin != null && outMin === latestOut ? 'wt-highlight' : '';
                     let totalsHtml = '';
+                    if (rec && rec.recognizedMin) {
+                        totalsHtml += `<div class="wt-totals">${minutesToHourText(rec.recognizedMin)}</div>`;
+                    }
                     if (inMin != null && outMin != null && outMin > inMin) {
-                        const recordedMin = Math.max(0, outMin - inMin - LUNCH_MIN);
                         const nineAmStart = Math.max(inMin, NINE_AM_MIN);
                         const nineAmMin = Math.max(0, outMin - nineAmStart - LUNCH_MIN);
-                        totalsHtml = `<div class="wt-totals">${minutesToHourText(recordedMin)}</div><div class="wt-totals">9시 ${minutesToHourText(nineAmMin)}</div>`;
+                        totalsHtml += `<div class="wt-totals">9시 ${minutesToHourText(nineAmMin)}</div>`;
                     }
                     return `<td class="${lateCls}"><div class="wt-time"><span class="${inHl}">${inTime}</span> / <span class="${outHl}">${outTime}</span></div>${totalsHtml}</td>`;
                 }).join('');
