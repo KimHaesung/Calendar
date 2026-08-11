@@ -1564,7 +1564,7 @@
         <div class="calendar-body">
             <div class="days" id="calendarDays"></div>
         </div>
-        <div class="footer">품질관리팀 Calendar · <a href="javascript:void(0)" onclick="openVersionModal()" title="버전 정보 보기">v<span id="appVersionLabel">1.15.13</span></a></div>
+        <div class="footer">품질관리팀 Calendar · <a href="javascript:void(0)" onclick="openVersionModal()" title="버전 정보 보기">v<span id="appVersionLabel">1.15.14</span></a></div>
     </div>
 
     <!-- 월간 연차 현황 플로팅 -->
@@ -1679,6 +1679,14 @@
 
         // 버전 이력 (최신이 위) — 버전 올릴 때 이 배열 맨 앞에 항목 추가 + 푸터 #appVersionLabel 텍스트 변경
         const VERSION_HISTORY = [
+            {
+                version: '1.15.14',
+                date: '2026-08-11',
+                title: '근태관리 — 연차 현황에 입사일/총 재직기간/총 경력 추가',
+                added: [
+                    '연차 현황 표에 이름 우측으로 입사일 · 총 재직기간 · 총 경력 열 추가(그룹웨어 조직원 정보 기준). /employee_info 경로에 admin 전용 규칙 신설, sync-attendance.js가 출퇴근 동기화에 함께 갱신',
+                ],
+            },
             {
                 version: '1.15.13',
                 date: '2026-08-11',
@@ -3400,6 +3408,8 @@
         let attendanceMeta = null;
         let attendanceListenerMonth = null;
         let attendanceMetaBound = false;
+        let employeeInfoData = {}; // { name: { hireYmd, tenure, career } } — 입사일/총 재직기간/총 경력
+        let employeeInfoBound = false;
 
         function attendanceMonthKey(d) {
             d = d || new Date();
@@ -3420,6 +3430,7 @@
             renderAttendanceLeaveTable();
             loadAttendanceMonth(key);
             setupAttendanceMetaListener();
+            setupEmployeeInfoListener();
         }
 
         function closeAttendancePanel() {
@@ -3432,6 +3443,19 @@
                 db.ref('/attendance/_meta').off();
                 attendanceMetaBound = false;
             }
+            if (db && employeeInfoBound) {
+                db.ref('/employee_info').off();
+                employeeInfoBound = false;
+            }
+        }
+
+        function setupEmployeeInfoListener() {
+            if (!db || employeeInfoBound || !isAdminUser()) return;
+            employeeInfoBound = true;
+            db.ref('/employee_info').on('value', function(snap) {
+                employeeInfoData = snap.val() || {};
+                renderAttendanceLeaveTable();
+            });
         }
 
         function loadAttendanceMonth(monthKey) {
@@ -3528,11 +3552,14 @@
             const fmt = n => { n = Number(n) || 0; return Number.isInteger(n) ? n : parseFloat(n.toFixed(2)); };
             const rows = TEAM_MEMBERS.map(name => {
                 const info = annualLeaveData[name];
+                const emp = employeeInfoData[name];
+                const empCells = `<td>${escHtml(emp && emp.hireYmd || '-')}</td><td>${escHtml(emp && emp.tenure || '-')}</td><td>${escHtml(emp && emp.career || '-')}</td>`;
                 if (!info) {
-                    return `<tr><td>${escHtml(name)}</td><td colspan="5" class="attendance-empty-cell">데이터 없음</td></tr>`;
+                    return `<tr><td>${escHtml(name)}</td>${empCells}<td colspan="5" class="attendance-empty-cell">데이터 없음</td></tr>`;
                 }
                 return `<tr>
                     <td>${escHtml(name)}</td>
+                    ${empCells}
                     <td>${escHtml(info.organizationName || '')}</td>
                     <td>${escHtml(info.dutyName || '')}</td>
                     <td>${fmt(info.yearNum)}</td>
@@ -3540,10 +3567,10 @@
                     <td>${fmt(info.remainNum)}</td>
                 </tr>`;
             }).join('');
-            el.innerHTML = `<table class="attendance-table">
-                <thead><tr><th>이름</th><th>부서</th><th>직급</th><th>총부여</th><th>사용</th><th>잔여</th></tr></thead>
+            el.innerHTML = `<div style="overflow-x:auto"><table class="attendance-table">
+                <thead><tr><th>이름</th><th>입사일</th><th>총 재직기간</th><th>총 경력</th><th>부서</th><th>직급</th><th>총부여</th><th>사용</th><th>잔여</th></tr></thead>
                 <tbody>${rows}</tbody>
-            </table>`;
+            </table></div>`;
         }
 
         // "08:15" → 495(분), 형식이 아니면 null
