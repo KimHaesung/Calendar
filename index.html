@@ -305,6 +305,21 @@
         .attendance-table td.late .wt-time { color: #d63031; font-weight: 700; }
         .attendance-table .wt-totals { font-size: 0.85em; color: #999; margin-top: 2px; }
         .attendance-table .wt-highlight { background: #dbeeff; color: #1e3c72; padding: 1px 5px; border-radius: 4px; font-weight: 700; }
+        .attendance-chart-wrap { margin-top: 14px; }
+        .attendance-chart-legend {
+            display: flex; gap: 16px; justify-content: center; margin-bottom: 8px;
+            font-size: 0.78em; color: #52514e;
+        }
+        .attendance-chart-legend span { display: inline-flex; align-items: center; gap: 6px; }
+        .attendance-chart-legend i { width: 10px; height: 10px; border-radius: 2px; display: inline-block; }
+        .attendance-chart-svg { width: 100%; height: auto; display: block; font-family: inherit; }
+        .attendance-chart-svg .axis-line { stroke: #c3c2b7; stroke-width: 1; }
+        .attendance-chart-svg .grid-line { stroke: #e1e0d9; stroke-width: 1; }
+        .attendance-chart-svg .axis-label { fill: #898781; font-size: 9px; }
+        .attendance-chart-svg .cat-label { fill: #52514e; font-size: 9.5px; font-weight: 600; }
+        .attendance-chart-svg .bar-label { fill: #52514e; font-size: 8.5px; }
+        .attendance-chart-svg .bar { transition: filter 0.1s ease; cursor: pointer; }
+        .attendance-chart-svg .bar:hover { filter: brightness(1.12); }
         .attendance-empty, .attendance-empty-cell {
             text-align: center; color: #aaa; padding: 16px 0; font-size: 0.88em;
         }
@@ -1492,6 +1507,7 @@
                     <div class="attendance-section-title">월간 근무시간 합계</div>
                     <div id="attendanceMonthlyTotals"></div>
                     <div class="attendance-legend" id="attendanceTotalsLegend">기록상 합계 = 실제 출퇴근 시각 기준 · 9시 기준 합계 = 오전 9시 이전 근무는 제외 · 둘 다 하루 점심 1시간 제외</div>
+                    <div id="attendanceMonthlyChart" class="attendance-chart-wrap"></div>
                 </div>
                 <div class="attendance-sync" id="attendanceSyncStatus"></div>
             </div>
@@ -1524,7 +1540,7 @@
         <div class="calendar-body">
             <div class="days" id="calendarDays"></div>
         </div>
-        <div class="footer">품질관리팀 Calendar · <a href="javascript:void(0)" onclick="openVersionModal()" title="버전 정보 보기">v<span id="appVersionLabel">1.15.6</span></a></div>
+        <div class="footer">품질관리팀 Calendar · <a href="javascript:void(0)" onclick="openVersionModal()" title="버전 정보 보기">v<span id="appVersionLabel">1.15.7</span></a></div>
     </div>
 
     <!-- 월간 연차 현황 플로팅 -->
@@ -1639,6 +1655,14 @@
 
         // 버전 이력 (최신이 위) — 버전 올릴 때 이 배열 맨 앞에 항목 추가 + 푸터 #appVersionLabel 텍스트 변경
         const VERSION_HISTORY = [
+            {
+                version: '1.15.7',
+                date: '2026-08-11',
+                title: '근태관리 — 월간 근무시간 그래프 추가',
+                added: [
+                    '월간 근무시간 합계 표 아래에 팀원별 묶은막대 그래프 추가 — 기록상 합계(파랑) vs 9시 기준 합계(주황) 비교, 막대에 마우스 올리면 정확한 시간 표시',
+                ],
+            },
             {
                 version: '1.15.6',
                 date: '2026-08-11',
@@ -3434,6 +3458,77 @@
                 <thead><tr><th>이름</th><th>기록상 합계</th><th>9시 기준 합계</th></tr></thead>
                 <tbody>${rows}</tbody>
             </table>`;
+            renderAttendanceMonthlyChart(totals);
+        }
+
+        // 팀원별 월간 근무시간 묶은막대 그래프 — 기록상(파랑) vs 9시 기준(주황)
+        function renderAttendanceMonthlyChart(totals) {
+            const el = document.getElementById('attendanceMonthlyChart');
+            if (!el) return;
+            const cats = TEAM_MEMBERS.filter(name => totals[name].days > 0);
+            if (!cats.length) {
+                el.innerHTML = '';
+                return;
+            }
+            const COLOR_RECORDED = '#2a78d6';
+            const COLOR_NINEAM = '#eb6834';
+            const hoursOf = mins => mins / 60;
+            const fmtShort = mins => hoursOf(mins).toFixed(1);
+
+            const maxHours = Math.max(1, ...cats.map(name => Math.max(hoursOf(totals[name].recorded), hoursOf(totals[name].nineAm))));
+            const niceMax = Math.ceil((maxHours * 1.1) / 20) * 20 || 20; // 여유 10% + 20단위 반올림
+
+            const W = 600, H = 220;
+            const marginLeft = 32, marginRight = 10, marginTop = 16, marginBottom = 26;
+            const plotW = W - marginLeft - marginRight;
+            const plotH = H - marginTop - marginBottom;
+            const groupW = plotW / cats.length;
+            const barW = Math.min(24, (groupW - 16) / 2);
+            const barGap = 2;
+            const yScale = h => (h / niceMax) * plotH;
+            const axisLineY = marginTop + plotH;
+
+            let gridHtml = '';
+            const gridCount = 4;
+            for (let i = 0; i <= gridCount; i++) {
+                const val = (niceMax / gridCount) * i;
+                const y = marginTop + plotH - yScale(val);
+                gridHtml += `<line class="grid-line" x1="${marginLeft}" y1="${y.toFixed(1)}" x2="${W - marginRight}" y2="${y.toFixed(1)}"></line>`;
+                gridHtml += `<text class="axis-label" x="${marginLeft - 6}" y="${(y + 3).toFixed(1)}" text-anchor="end">${Math.round(val)}</text>`;
+            }
+
+            let barsHtml = '';
+            let catLabelsHtml = '';
+            cats.forEach((name, i) => {
+                const t = totals[name];
+                const groupX = marginLeft + i * groupW;
+                const pairW = barW * 2 + barGap;
+                const pairX = groupX + (groupW - pairW) / 2;
+                const recH = yScale(hoursOf(t.recorded));
+                const nineH = yScale(hoursOf(t.nineAm));
+                const recY = axisLineY - recH;
+                const nineY = axisLineY - nineH;
+                const nameEsc = escHtml(name);
+
+                barsHtml += `<rect class="bar" x="${pairX.toFixed(1)}" y="${recY.toFixed(1)}" width="${barW.toFixed(1)}" height="${recH.toFixed(1)}" rx="4" ry="4" fill="${COLOR_RECORDED}"><title>${nameEsc} · 기록상 합계: ${minutesToHourText(t.recorded)}</title></rect>`;
+                barsHtml += `<rect class="bar" x="${(pairX + barW + barGap).toFixed(1)}" y="${nineY.toFixed(1)}" width="${barW.toFixed(1)}" height="${nineH.toFixed(1)}" rx="4" ry="4" fill="${COLOR_NINEAM}"><title>${nameEsc} · 9시 기준 합계: ${minutesToHourText(t.nineAm)}</title></rect>`;
+                barsHtml += `<text class="bar-label" x="${(pairX + barW / 2).toFixed(1)}" y="${(recY - 4).toFixed(1)}" text-anchor="middle">${fmtShort(t.recorded)}</text>`;
+                barsHtml += `<text class="bar-label" x="${(pairX + barW + barGap + barW / 2).toFixed(1)}" y="${(nineY - 4).toFixed(1)}" text-anchor="middle">${fmtShort(t.nineAm)}</text>`;
+                catLabelsHtml += `<text class="cat-label" x="${(groupX + groupW / 2).toFixed(1)}" y="${H - marginBottom + 16}" text-anchor="middle">${nameEsc}</text>`;
+            });
+
+            el.innerHTML = `
+                <div class="attendance-chart-legend">
+                    <span><i style="background:${COLOR_RECORDED}"></i>기록상 합계</span>
+                    <span><i style="background:${COLOR_NINEAM}"></i>9시 기준 합계</span>
+                </div>
+                <svg class="attendance-chart-svg" viewBox="0 0 ${W} ${H}" role="img" aria-label="팀원별 월간 근무시간(시간 단위)">
+                    ${gridHtml}
+                    <line class="axis-line" x1="${marginLeft}" y1="${axisLineY}" x2="${W - marginRight}" y2="${axisLineY}"></line>
+                    <text class="axis-label" x="${marginLeft}" y="10" text-anchor="start">시간</text>
+                    ${barsHtml}
+                    ${catLabelsHtml}
+                </svg>`;
         }
 
         function renderAttendanceWorktimes() {
