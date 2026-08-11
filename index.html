@@ -303,6 +303,8 @@
         .attendance-table th { color: #666; font-weight: 700; background: #fafafa; }
         .attendance-table td:first-child, .attendance-table th:first-child { text-align: left; }
         .attendance-table td.late .wt-time { color: #d63031; font-weight: 700; }
+        .attendance-table td.leave-used { color: #2a78d6; font-weight: 700; }
+        .attendance-table td.leave-remain { color: #d63031; font-weight: 700; }
         .attendance-table .wt-totals { font-size: 0.85em; color: #999; margin-top: 2px; }
         .attendance-table .wt-highlight { background: #dbeeff; color: #1e3c72; padding: 1px 5px; border-radius: 4px; font-weight: 700; }
         .attendance-chart-controls {
@@ -339,7 +341,7 @@
             margin-top: 6px; font-size: 0.75em; color: #999; text-align: right;
         }
         #attendanceMonthlyTotals { margin-bottom: 4px; }
-        #attendanceTotalsLegend { margin-bottom: 14px; padding-bottom: 14px; border-bottom: 1px solid #f0f0f0; }
+        #attendanceTotalsLegend { margin-bottom: 14px; padding-bottom: 14px; border-bottom: 1px solid #f0f0f0; text-align: left; }
         #attendanceTotalsLegend div + div { margin-top: 3px; }
         .attendance-table td.date-sunday { color: #e74c3c; }
         .attendance-table td.date-saturday { color: #3498db; }
@@ -1564,7 +1566,7 @@
         <div class="calendar-body">
             <div class="days" id="calendarDays"></div>
         </div>
-        <div class="footer">품질관리팀 Calendar · <a href="javascript:void(0)" onclick="openVersionModal()" title="버전 정보 보기">v<span id="appVersionLabel">1.15.15</span></a></div>
+        <div class="footer">품질관리팀 Calendar · <a href="javascript:void(0)" onclick="openVersionModal()" title="버전 정보 보기">v<span id="appVersionLabel">1.15.16</span></a></div>
     </div>
 
     <!-- 월간 연차 현황 플로팅 -->
@@ -1679,6 +1681,15 @@
 
         // 버전 이력 (최신이 위) — 버전 올릴 때 이 배열 맨 앞에 항목 추가 + 푸터 #appVersionLabel 텍스트 변경
         const VERSION_HISTORY = [
+            {
+                version: '1.15.16',
+                date: '2026-08-11',
+                title: '근태관리 — 안내 문구 좌측 정렬, 연차 사용/잔여 색상 구분',
+                changed: [
+                    '"월간 근무시간 합계" 아래 안내 문구 3줄을 좌측 정렬로 변경',
+                    '연차 현황 표에서 "사용"은 파란색, "잔여"는 빨간색으로 구분 표시',
+                ],
+            },
             {
                 version: '1.15.15',
                 date: '2026-08-11',
@@ -3571,8 +3582,8 @@
                     <td>${escHtml(info.organizationName || '')}</td>
                     <td>${escHtml(info.dutyName || '')}</td>
                     <td>${fmt(info.yearNum)}</td>
-                    <td>${fmt(info.totalUsedNum)}</td>
-                    <td>${fmt(info.remainNum)}</td>
+                    <td class="leave-used">${fmt(info.totalUsedNum)}</td>
+                    <td class="leave-remain">${fmt(info.remainNum)}</td>
                 </tr>`;
             }).join('');
             el.innerHTML = `<div style="overflow-x:auto"><table class="attendance-table">
