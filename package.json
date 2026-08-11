@@ -6,7 +6,9 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "sync": "node scripts/sync-annual-leave.js",
-    "sync:debug": "cross-env HEADFUL=true node scripts/sync-annual-leave.js"
+    "sync:debug": "cross-env HEADFUL=true node scripts/sync-annual-leave.js",
+    "sync:attendance": "node scripts/sync-attendance.js",
+    "sync:attendance:debug": "cross-env HEADFUL=true node scripts/sync-attendance.js"
   },
   "repository": {
     "type": "git",
