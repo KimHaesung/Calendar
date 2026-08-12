@@ -4,6 +4,7 @@
     const loggedIn = $('loggedIn');
     const bootStatus = $('bootStatus');
     const syncStatus = $('syncStatus');
+    const attendanceSyncStatus = $('attendanceSyncStatus');
 
     function show(state) {
         bootStatus.style.display = 'none';
@@ -42,6 +43,16 @@
         }
     }
 
+    async function refreshAttendanceStatusLine() {
+        if (!attendanceSyncStatus) return;
+        const { lastAttendanceSyncAt, lastAttendanceSyncCount } = await chrome.storage.local.get(['lastAttendanceSyncAt', 'lastAttendanceSyncCount']);
+        if (!lastAttendanceSyncAt) {
+            setStatus(attendanceSyncStatus, '최근 동기화: 정보 없음', 'info');
+        } else {
+            setStatus(attendanceSyncStatus, '최근 동기화: ' + fmtAgo(lastAttendanceSyncAt) + (lastAttendanceSyncCount != null ? ' / ' + lastAttendanceSyncCount + '일' : ''), 'success');
+        }
+    }
+
     async function refreshGwAuthLine() {
         const el = $('gwAuthStatus');
         if (!el) return;
@@ -63,6 +74,7 @@
         $('userEmail').textContent = auth.email || '(unknown)';
         show('in');
         await refreshStatusLine();
+        await refreshAttendanceStatusLine();
         await refreshGwAuthLine();
     } else {
         show('out');
@@ -97,6 +109,7 @@
             $('userEmail').textContent = result.email;
             show('in');
             await refreshStatusLine();
+            await refreshAttendanceStatusLine();
             await refreshGwAuthLine();
         } catch (e) {
             // 실패 사유는 진단에 중요하므로 자동으로 사라지지 않고 다음 시도 전까지 유지한다.
@@ -114,7 +127,7 @@
     });
 
     $('logoutBtn').addEventListener('click', async () => {
-        await chrome.storage.local.remove(['auth', 'lastSyncAt', 'lastSyncCount']);
+        await chrome.storage.local.remove(['auth', 'lastSyncAt', 'lastSyncCount', 'lastAttendanceSyncAt', 'lastAttendanceSyncCount']);
         show('out');
     });
 
@@ -139,7 +152,32 @@
         } catch (e) {
             setStatus(syncStatus, '실패: ' + (e && e.message || e), 'error');
         } finally {
-            btn.disabled = false; btn.textContent = '지금 동기화';
+            btn.disabled = false; btn.textContent = '연차 동기화';
+        }
+    });
+
+    $('attendanceSyncBtn').addEventListener('click', async () => {
+        const btn = $('attendanceSyncBtn');
+        btn.disabled = true; btn.textContent = '동기화 중...';
+        setStatus(attendanceSyncStatus, '동기화 진행 중...', 'info');
+        try {
+            const resp = await chrome.runtime.sendMessage({ type: 'sync-attendance-now' });
+            if (resp && resp.ok) {
+                const r = resp.result || {};
+                if (r.skipped) {
+                    setStatus(attendanceSyncStatus, '스로틀로 건너뜀 (' + r.reason + ')', 'info');
+                } else {
+                    setStatus(attendanceSyncStatus, '동기화 완료 / ' + r.month + ' ' + r.count + '일', 'success');
+                }
+            } else {
+                setStatus(attendanceSyncStatus, '실패: ' + ((resp && resp.error) || '응답 없음'), 'error');
+            }
+            await refreshAttendanceStatusLine();
+            await refreshGwAuthLine();
+        } catch (e) {
+            setStatus(attendanceSyncStatus, '실패: ' + (e && e.message || e), 'error');
+        } finally {
+            btn.disabled = false; btn.textContent = '출퇴근 동기화';
         }
     });
 })();

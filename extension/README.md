@@ -2,6 +2,7 @@
 
 그룹웨어 페이지 방문 시 잔여 연차 정보를 자동으로 캘린더 Firebase로 동기화한다.
 PC 작업 스케줄러와 달리 **PC가 꺼져 있어도 OK** — 회사에서 그룹웨어 보다가 자연스럽게 갱신됨.
+팝업에는 "연차 동기화"(자동+수동) 버튼과 "출퇴근 동기화"(팀 전체, 수동 전용) 버튼이 있다.
 
 ## 사전 조건 (1회)
 
@@ -10,6 +11,14 @@ Firebase 보안 규칙에 쓰기 권한이 열려 있어야 한다. 아래 규�
 
 ```json
 "annual_leave": {
+  ".read": "auth != null && (auth.token.email === 'miracle0938@gmail.com' || auth.token.email === 'miracle38@jiran.com')",
+  ".write": "auth != null && (auth.token.email === 'miracle0938@gmail.com' || auth.token.email === 'miracle38@jiran.com')"
+},
+"attendance": {
+  ".read": "auth != null && (auth.token.email === 'miracle0938@gmail.com' || auth.token.email === 'miracle38@jiran.com')",
+  ".write": "auth != null && (auth.token.email === 'miracle0938@gmail.com' || auth.token.email === 'miracle38@jiran.com')"
+},
+"employee_info": {
   ".read": "auth != null && (auth.token.email === 'miracle0938@gmail.com' || auth.token.email === 'miracle38@jiran.com')",
   ".write": "auth != null && (auth.token.email === 'miracle0938@gmail.com' || auth.token.email === 'miracle38@jiran.com')"
 }
@@ -37,10 +46,16 @@ Firebase 보안 규칙에 쓰기 권한이 열려 있어야 한다. 아래 규�
 
 ## 동작 방식
 
+**연차 동기화**
 - **자동 1**: 그룹웨어 페이지 (`https://jiran.groupware.pro/*`) 로드 완료 시 → 동기화 시도
 - **자동 2**: 1시간마다 알람으로 동기화 시도 (브라우저 켜져 있을 때만)
 - **스로틀**: 마지막 동기화 후 1시간 이내면 자동으로 skip (API 부하 방지)
-- **수동**: 확장 팝업에서 "지금 동기화" 누르면 즉시 (스로틀 무시)
+- **수동**: 확장 팝업에서 "연차 동기화" 누르면 즉시 (스로틀 무시)
+
+**출퇴근 동기화(팀 전체, 근태관리 패널용)**
+- 자동 트리거 없음 — 확장 팝업의 "출퇴근 동기화" 버튼을 눌러야 실행됨 (수동 전용, 자체 1시간 스로틀)
+- 이번 달 전체를 조회해 `/attendance/{yyyy-MM}`, `/employee_info`에 저장
+- PC 예약 작업(`CalendarAttendanceSync`, 평일 밤 11시)이 같은 경로에 자동으로 채워주므로, 버튼은 "지금 바로 최신화하고 싶을 때"만 쓰면 됨
 
 ## 권한 설명
 
@@ -52,7 +67,7 @@ manifest.json 에 다음 권한이 있다:
 | `storage` | Firebase 인증 토큰 저장 (chrome.storage.local) |
 | `notifications` | 동기화 결과 알림 |
 | `jiran.groupware.pro/*` | 페이지 로드 이벤트 감지 |
-| `jiran.api.groupware.pro/*` | annualsummary API 호출 |
+| `jiran.api.groupware.pro/*` | annualsummary / employeeInfoList / commute API 호출 |
 | `identitytoolkit.googleapis.com/*` | Firebase Auth 로그인 |
 | `securetoken.googleapis.com/*` | 인증 토큰 갱신 |
 | `calendar-6df01-default-rtdb.firebaseio.com/*` | RTDB 데이터 쓰기 |
