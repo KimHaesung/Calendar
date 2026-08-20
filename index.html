@@ -1666,7 +1666,7 @@
         <div class="calendar-body">
             <div class="days" id="calendarDays"></div>
         </div>
-        <div class="footer">품질관리팀 Calendar · <a href="javascript:void(0)" onclick="openVersionModal()" title="버전 정보 보기">v<span id="appVersionLabel">1.16.0</span></a></div>
+        <div class="footer">품질관리팀 Calendar · <a href="javascript:void(0)" onclick="openVersionModal()" title="버전 정보 보기">v<span id="appVersionLabel">1.17.0</span></a></div>
     </div>
 
     <!-- 월간 연차 현황 플로팅 -->
@@ -1781,6 +1781,15 @@
 
         // 버전 이력 (최신이 위) — 버전 올릴 때 이 배열 맨 앞에 항목 추가 + 푸터 #appVersionLabel 텍스트 변경
         const VERSION_HISTORY = [
+            {
+                version: '1.17.0',
+                date: '2026-08-20',
+                title: 'AI 챗봇(오피스에이전트) 연동',
+                added: [
+                    '화면 우측 중앙에 세로형 "💬 AI 상담" 버튼 추가 — 클릭 시 오피스에이전트 챗봇 위젯이 열림',
+                    '로그인한 사용자에게만 노출 (비로그인 화면에서는 숨김)',
+                ],
+            },
             {
                 version: '1.16.0',
                 date: '2026-08-12',
@@ -5588,5 +5597,47 @@
     <style>
       .site-footer { border-top: 1px solid rgba(30,60,114,0.15); padding: 14px 16px; color: #64748b; font-size: 0.78rem; text-align: center; letter-spacing: 0.3px; margin-top: 30px; }
     </style>
+
+    <!-- 챗봇 사이드 버튼 -->
+    <button id="chatbotSideBtn" class="auth-only" type="button" aria-label="AI 챗봇 열기">💬 AI 상담</button>
+    <style>
+      #chatbotSideBtn {
+          position: fixed;
+          right: 0;
+          top: 50%;
+          transform: translateY(-50%);
+          z-index: 9999;
+          background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+          color: #fff;
+          border: none;
+          padding: 16px 10px;
+          border-radius: 10px 0 0 10px;
+          box-shadow: -2px 2px 12px rgba(0,0,0,0.18);
+          cursor: pointer;
+          font-family: inherit;
+          font-size: 0.85em;
+          font-weight: 600;
+          writing-mode: vertical-rl;
+          text-orientation: mixed;
+          letter-spacing: 1px;
+          transition: padding-right 0.2s, background 0.2s;
+      }
+      #chatbotSideBtn:hover { padding-right: 16px; background: linear-gradient(135deg, #2a5298 0%, #1e3c72 100%); }
+      /* OfficeAgent 위젯의 기본 플로팅 버튼은 숨기고, 위 커스텀 버튼으로 대체 */
+      .widget-launcher { display: none !important; }
+    </style>
+
+    <!-- OfficeAgent 임베드 챗봇 -->
+    <script type="module" src="https://chatbot.officeagent.kr/widget-loader.js"></script>
+    <script type="module">
+        const chatWidget = window.ChatWidget.init({
+            site_key: 'pk_8c28225ba3877e8490fc6ad47cfbf0fb',
+            // 선택: 로그인 사용자 식별 시
+            // customer: 'BASE64(로그인 사용자 식별자)',
+        });
+        document.getElementById('chatbotSideBtn').addEventListener('click', function () {
+            chatWidget.open();
+        });
+    </script>
 </body>
 </html>
