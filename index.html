@@ -602,15 +602,6 @@
         }
         .copy-toast.show { opacity: 1; }
 
-        .copy-time-badge {
-            position: fixed; top: 12px; right: 16px;
-            background: rgba(21,128,61,0.92); color: #fff;
-            padding: 5px 12px; border-radius: 6px; font-size: 0.78em;
-            font-weight: 600; z-index: 300; pointer-events: none;
-            opacity: 0; transition: opacity 0.3s;
-        }
-        .copy-time-badge.show { opacity: 1; }
-
         .event-tag.copy-flash, .leave-tag.copy-flash {
             outline: 2px solid #15803d;
             outline-offset: -1px;
@@ -1650,7 +1641,6 @@
     </div>
     <div class="drag-hint" id="dragHint"></div>
     <div class="copy-toast" id="copyToast">클립보드에 복사됨</div>
-    <div class="copy-time-badge" id="copyTimeBadge"></div>
     <div class="calendar">
         <div class="calendar-header">
             <div>
@@ -1796,7 +1786,7 @@
                 date: '2026-08-25',
                 title: '복사 시각 표시',
                 added: [
-                    '[일정표 복사] / [사내 게시판용] / [이미지로 복사] 사용 시 화면 우측 상단에 마지막 복사 시각을 "YYYY-MM-DD hh-mm" 형식으로 표시',
+                    '[일정표 복사] / [사내 게시판용] / [이미지로 복사]로 복사한 결과물(붙여넣은 표/이미지) 우측 상단에 복사 시각을 "YYYY-MM-DD hh:mm 기준" 형식으로 표시',
                 ],
             },
             {
@@ -4895,15 +4885,11 @@
             renderCalendar();
         }
 
-        // 우측 상단에 마지막 복사 시각 표시 (YYYY-MM-DD hh-mm)
-        function showCopyTimestamp() {
+        // 복사되는 내용(붙여넣기 결과) 우측 상단에 넣을 복사 시각 텍스트 (YYYY-MM-DD hh:mm 기준)
+        function getCopyTimestampText() {
             const d = new Date();
             const pad = n => String(n).padStart(2, '0');
-            const formatted = `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}-${pad(d.getMinutes())}`;
-            const badge = document.getElementById('copyTimeBadge');
-            if (!badge) return;
-            badge.textContent = `마지막 복사: ${formatted}`;
-            badge.classList.add('show');
+            return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())} 기준`;
         }
 
         // 게시판 복사용 - 반응형 HTML 테이블 생성
@@ -4924,7 +4910,7 @@
             let html = `<table width="${TW}" cellpadding="0" cellspacing="0" border="1" bordercolor="#e0e0e0" style="border-collapse:collapse;max-width:100%;font-family:Malgun Gothic,Apple SD Gothic Neo,sans-serif;font-size:13px;">`;
 
             // 헤더
-            html += `<tr><td colspan="7" style="background:#1e3c72;color:#fff;padding:16px 20px;font-size:18px;font-weight:700;"><img src="https://miracle38.github.io/calendar/logo_v2.png" style="height:18px;vertical-align:middle;margin-right:10px;position:relative;top:-1px;"><span style="font-size:0.9em;">품질관리팀 ${currentYear}년 ${currentMonth}월 일정표</span><br><span style="font-size:12px;font-weight:400;opacity:0.85;">Quality Management Team · ${MONTH_NAMES_EN[currentMonth - 1]} ${currentYear}</span></td></tr>`;
+            html += `<tr><td colspan="7" style="background:#1e3c72;color:#fff;padding:16px 20px;"><div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;"><div style="font-size:18px;font-weight:700;"><img src="https://miracle38.github.io/calendar/logo_v2.png" style="height:18px;vertical-align:middle;margin-right:10px;position:relative;top:-1px;"><span style="font-size:0.9em;">품질관리팀 ${currentYear}년 ${currentMonth}월 일정표</span><br><span style="font-size:12px;font-weight:400;opacity:0.85;">Quality Management Team · ${MONTH_NAMES_EN[currentMonth - 1]} ${currentYear}</span></div><div style="font-size:11px;font-weight:400;opacity:0.85;white-space:nowrap;">${getCopyTimestampText()}</div></div></td></tr>`;
 
             // 요일 - width 속성으로 강제
             html += '<tr>';
@@ -5003,7 +4989,6 @@
             const blob = new Blob([html], { type: 'text/html' });
             const item = new ClipboardItem({ 'text/html': blob });
             navigator.clipboard.write([item]).then(() => {
-                showCopyTimestamp();
                 alert('일정표가 클립보드에 복사되었습니다. Ctrl+V로 붙여넣기 하세요.');
             }).catch(() => {
                 const w = window.open('', '_blank', 'width=900,height=700');
@@ -5030,7 +5015,7 @@
             let html = `<table width="${TW}" cellpadding="0" cellspacing="0" border="1" bordercolor="#e0e0e0" style="border-collapse:collapse;max-width:100%;font-family:Malgun Gothic,Apple SD Gothic Neo,sans-serif;font-size:13px;">`;
 
             // 헤더 — bgcolor + font color
-            html += `<tr><td colspan="7" bgcolor="#1e3c72" style="background:#1e3c72;padding:16px 20px;"><font color="#FFFFFF" style="color:#fff;"><b style="font-size:18px;">품질관리팀 ${currentYear}년 ${currentMonth}월 일정표</b><br><span style="font-size:12px;font-weight:400;opacity:0.85;">Quality Management Team · ${MONTH_NAMES_EN[currentMonth - 1]} ${currentYear}</span></font></td></tr>`;
+            html += `<tr><td colspan="7" bgcolor="#1e3c72" style="background:#1e3c72;padding:16px 20px;"><table width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;"><tr><td align="left"><font color="#FFFFFF" style="color:#fff;"><b style="font-size:18px;">품질관리팀 ${currentYear}년 ${currentMonth}월 일정표</b><br><span style="font-size:12px;font-weight:400;opacity:0.85;">Quality Management Team · ${MONTH_NAMES_EN[currentMonth - 1]} ${currentYear}</span></font></td><td align="right" valign="top"><font color="#FFFFFF" style="color:#fff;font-size:11px;">${getCopyTimestampText()}</font></td></tr></table></td></tr>`;
 
             // 요일 헤더
             html += '<tr>';
@@ -5129,7 +5114,6 @@
             const plainBlob = new Blob([html.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim()], { type: 'text/plain' });
             const item = new ClipboardItem({ 'text/html': blob, 'text/plain': plainBlob });
             navigator.clipboard.write([item]).then(() => {
-                showCopyTimestamp();
                 alert('사내 게시판용으로 복사되었습니다. 게시판 본문에 Ctrl+V 로 붙여넣기 하세요.');
             }).catch(() => {
                 const w = window.open('', '_blank', 'width=900,height=700');
@@ -5177,9 +5161,16 @@
                     el.style[key] = props[key];
                 });
             };
-            overrideStyle('.calendar-header', { padding: '24px 32px', gap: '8px' });
+            overrideStyle('.calendar-header', { padding: '24px 32px', gap: '8px', position: 'relative' });
             overrideStyle('#calTitle', { whiteSpace: 'nowrap', fontSize: '1.6em' });
             overrideStyle('#calTitle span', { whiteSpace: 'nowrap' });
+
+            // 캡처될 이미지 우측 상단에 복사 시각 임시 삽입 (캡처 후 제거)
+            const header = calendar.querySelector('.calendar-header');
+            const timestampEl = document.createElement('div');
+            timestampEl.textContent = getCopyTimestampText();
+            timestampEl.style.cssText = 'position:absolute;top:14px;right:20px;font-size:12px;font-weight:400;opacity:0.85;color:#fff;white-space:nowrap;';
+            if (header) header.appendChild(timestampEl);
 
             try {
                 // 좁은 뷰포트에서 캘린더가 축소되어 우측(토요일)이 잘리는 것 방지
@@ -5219,7 +5210,6 @@
                 const blob = await res.blob();
                 const item = new ClipboardItem({ 'image/png': blob });
                 await navigator.clipboard.write([item]);
-                showCopyTimestamp();
                 alert('일정표 이미지가 클립보드에 복사되었습니다. 게시판에 Ctrl+V 로 붙여넣기 하세요.');
             } catch (e) {
                 console.error('[copyAsImage] 실패', e);
@@ -5228,6 +5218,8 @@
             } finally {
                 // 로고 src 원복
                 logoSwaps.forEach(({ el, src }) => el.setAttribute('src', src));
+                // 임시 복사 시각 엘리먼트 제거
+                if (timestampEl.parentNode) timestampEl.remove();
                 // 인라인 스타일 원복 (역순)
                 styleOverrides.slice().reverse().forEach(({ el, key, prev }) => {
                     if (prev) el.style[key] = prev; else el.style.removeProperty(key.replace(/[A-Z]/g, m => '-' + m.toLowerCase()));
