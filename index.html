@@ -602,6 +602,15 @@
         }
         .copy-toast.show { opacity: 1; }
 
+        .copy-time-badge {
+            position: fixed; top: 12px; right: 16px;
+            background: rgba(21,128,61,0.92); color: #fff;
+            padding: 5px 12px; border-radius: 6px; font-size: 0.78em;
+            font-weight: 600; z-index: 300; pointer-events: none;
+            opacity: 0; transition: opacity 0.3s;
+        }
+        .copy-time-badge.show { opacity: 1; }
+
         .event-tag.copy-flash, .leave-tag.copy-flash {
             outline: 2px solid #15803d;
             outline-offset: -1px;
@@ -1641,6 +1650,7 @@
     </div>
     <div class="drag-hint" id="dragHint"></div>
     <div class="copy-toast" id="copyToast">클립보드에 복사됨</div>
+    <div class="copy-time-badge" id="copyTimeBadge"></div>
     <div class="calendar">
         <div class="calendar-header">
             <div>
@@ -1666,7 +1676,7 @@
         <div class="calendar-body">
             <div class="days" id="calendarDays"></div>
         </div>
-        <div class="footer">품질관리팀 Calendar · <a href="javascript:void(0)" onclick="openVersionModal()" title="버전 정보 보기">v<span id="appVersionLabel">1.16.0</span></a></div>
+        <div class="footer">품질관리팀 Calendar · <a href="javascript:void(0)" onclick="openVersionModal()" title="버전 정보 보기">v<span id="appVersionLabel">1.17.0</span></a></div>
     </div>
 
     <!-- 월간 연차 현황 플로팅 -->
@@ -1781,6 +1791,14 @@
 
         // 버전 이력 (최신이 위) — 버전 올릴 때 이 배열 맨 앞에 항목 추가 + 푸터 #appVersionLabel 텍스트 변경
         const VERSION_HISTORY = [
+            {
+                version: '1.17.0',
+                date: '2026-08-25',
+                title: '복사 시각 표시',
+                added: [
+                    '[일정표 복사] / [사내 게시판용] / [이미지로 복사] 사용 시 화면 우측 상단에 마지막 복사 시각을 "YYYY-MM-DD hh-mm" 형식으로 표시',
+                ],
+            },
             {
                 version: '1.16.0',
                 date: '2026-08-12',
@@ -4877,6 +4895,17 @@
             renderCalendar();
         }
 
+        // 우측 상단에 마지막 복사 시각 표시 (YYYY-MM-DD hh-mm)
+        function showCopyTimestamp() {
+            const d = new Date();
+            const pad = n => String(n).padStart(2, '0');
+            const formatted = `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}-${pad(d.getMinutes())}`;
+            const badge = document.getElementById('copyTimeBadge');
+            if (!badge) return;
+            badge.textContent = `마지막 복사: ${formatted}`;
+            badge.classList.add('show');
+        }
+
         // 게시판 복사용 - 반응형 HTML 테이블 생성
         function copyAsHTML() {
             const startOffset = new Date(currentYear, currentMonth - 1, 1).getDay();
@@ -4974,6 +5003,7 @@
             const blob = new Blob([html], { type: 'text/html' });
             const item = new ClipboardItem({ 'text/html': blob });
             navigator.clipboard.write([item]).then(() => {
+                showCopyTimestamp();
                 alert('일정표가 클립보드에 복사되었습니다. Ctrl+V로 붙여넣기 하세요.');
             }).catch(() => {
                 const w = window.open('', '_blank', 'width=900,height=700');
@@ -5099,6 +5129,7 @@
             const plainBlob = new Blob([html.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim()], { type: 'text/plain' });
             const item = new ClipboardItem({ 'text/html': blob, 'text/plain': plainBlob });
             navigator.clipboard.write([item]).then(() => {
+                showCopyTimestamp();
                 alert('사내 게시판용으로 복사되었습니다. 게시판 본문에 Ctrl+V 로 붙여넣기 하세요.');
             }).catch(() => {
                 const w = window.open('', '_blank', 'width=900,height=700');
@@ -5188,6 +5219,7 @@
                 const blob = await res.blob();
                 const item = new ClipboardItem({ 'image/png': blob });
                 await navigator.clipboard.write([item]);
+                showCopyTimestamp();
                 alert('일정표 이미지가 클립보드에 복사되었습니다. 게시판에 Ctrl+V 로 붙여넣기 하세요.');
             } catch (e) {
                 console.error('[copyAsImage] 실패', e);
